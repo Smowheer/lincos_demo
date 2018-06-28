@@ -37,6 +37,19 @@ void main()
 	}
 	else {
 		// TODO A1 (a)
+    // fetch stuff
+    vec3 t_diffuse = texture2D(diffuse, tc).rgb;
+    vec3 t_normal = texture2D(normal, tc).rgb;
+    vec3 t_position = texture2D(position, tc).rgb;
+    gl_FragDepth = texture2D(depth, tc).r;
+
+
+    vec4 v_lightDir = viewMatrix * vec4(lightDir, 1.0);
+    vec3 n_ldir = normalize(v_lightDir.rgb/v_lightDir.a);
+    col = t_diffuse * max(0.0, dot(-n_ldir, t_normal));
+
+    // usw phong
+
 	}
 
 	out0 = vec4(col, 1.0);

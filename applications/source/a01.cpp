@@ -43,8 +43,25 @@ void Assignment1::render() {
     // TODO A1 (a), setup gbuffer textures: see, glActiveTexture, Tex, uniform (helper.h)
     uniform("quad", "debug", debugShading);
 
+    uniform("quad", "diffuse", 0);
+    uniform("quad", "normal", 1);
+    uniform("quad", "position", 2);
+    uniform("quad", "depth", 3);
+
     uniform("quad", "lightDir", lightDir);
     uniform("quad", "viewMatrix", viewMatrix());
+
+    glActiveTexture(GL_TEXTURE0);
+    diffuse.bind();
+
+    glActiveTexture(GL_TEXTURE1);
+    normal.bind();
+
+    glActiveTexture(GL_TEXTURE2);
+    position.bind();
+
+    glActiveTexture(GL_TEXTURE3);
+    depth.bind();
 
     quad.draw();
 
