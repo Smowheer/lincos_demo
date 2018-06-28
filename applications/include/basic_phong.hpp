@@ -24,8 +24,7 @@ class BasicPhong : public Application {
   void initializeShaderPrograms();
   void initializeObjects();
 
-  void renderScene() const;
-  void resize() override;
+
   // render objects
   simpleQuad  quad;
   simpleModel teaPot;
@@ -33,28 +32,9 @@ class BasicPhong : public Application {
   solidSphere sphere;
   simplePoint point;
 
-  // frame buffer object
-  Fbo fbo;
+  // gui options
+  glm::fvec3 pointLightPos;
 
-  // textures
-  Tex diffuse;
-  Tex normal;
-  Tex position; 
-  Tex depth;
-
-  Timer timer;
-
-  glm::fvec3 lightDir;
-  float rotationAngle;
-  float degreesPerSecond;
-  float radius;
-
-  bool autoRotate;
-  bool debugShading;
-  bool stencilCulling;
-  bool debugStencil;
-  bool clearDebugStencil;
-  bool splatting;
 };
 
 #endif
