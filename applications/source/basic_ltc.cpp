@@ -64,6 +64,11 @@ void BasicLTC::render() {
     point.draw();
   }
 
+  //for (int i = 0; i < 4; ++i) {
+  //  points[i] = viewMatrix() * points[i];
+  //  points[i] = points[i] / points[i].a;
+  //}
+
   // draw the ground
   glUseProgram(shader("ltc"));
   uniform("ltc", "modelMatrix", glm::mat4(1.0));
@@ -75,6 +80,7 @@ void BasicLTC::render() {
   uniform("ltc", "p4", glm::vec3(points[3]));
   uniform("ltc", "ltc_1", 0);
   uniform("ltc", "ltc_2", 1);
+  uniform("ltc", "camera_position", m_cam.position);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, ltc_texture_1);
   glActiveTexture(GL_TEXTURE1);

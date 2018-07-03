@@ -6,8 +6,8 @@ uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 projMatrix;
 
-out vec3 v_normal;
-out vec3 v_position;
+out vec3 w_normal;
+out vec3 w_position;
 
 void main() {
   mat3 normalMatrix = transpose(inverse(mat3(viewMatrix * modelMatrix)));
@@ -15,8 +15,10 @@ void main() {
   vec4 hv_position = viewMatrix * modelMatrix * vec4(vPosition, 1);
 
   // outputs
-  v_normal = normalMatrix * vNormal;
-  v_position = hv_position.xyz / hv_position.w;
+  //v_normal = normalMatrix * vNormal;
+  //v_position = hv_position.xyz / hv_position.w;
+  w_normal = vNormal;
+  w_position = (modelMatrix * vec4(vPosition, 1)).xyz;
 
   gl_Position = projMatrix * hv_position;
 }

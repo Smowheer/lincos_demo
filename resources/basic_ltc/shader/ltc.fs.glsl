@@ -33,8 +33,13 @@ uniform vec3 p4;
 uniform sampler2D ltc_1;
 uniform sampler2D ltc_2;
 
-in vec3 v_normal;
-in vec3 v_position;
+uniform vec3 camera_position;
+
+//in vec3 v_normal;
+//in vec3 v_position;
+
+in vec3 w_normal;
+in vec3 w_position;
 
 // uniform mat4  view;
 // uniform vec2  resolution;
@@ -451,12 +456,12 @@ void main()
 
     //vec3 N = floorPlane.xyz;
     //vec3 V = -ray.dir;
-    vec3 pos = v_position;
-    vec3 N = v_normal;
-    vec3 V = vec3(0.0, 0.0, 1.0);
+    vec3 pos = w_position;
+    vec3 N = normalize(w_normal);
+    vec3 V = normalize(camera_position - w_position);
 
     float ndotv = saturate(dot(N, V));
-    float roughness = 0.5;
+    float roughness = 0.1;
     vec2 uv = vec2(roughness, sqrt(1.0 - ndotv));
     uv = uv*LUT_SCALE + LUT_BIAS;
 
