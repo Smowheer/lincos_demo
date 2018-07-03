@@ -3,7 +3,7 @@
 layout(location = 0) out vec4 o_color;
 
 in vec3 v_normal;
-in vec4 hv_position;
+in vec3 v_position;
 
 uniform mat4 viewMatrix;
 
@@ -11,7 +11,6 @@ uniform vec3 pointLightPos;
 
 void main() {
   vec3 nv_normal = normalize(v_normal);
-  vec3 v_position = hv_position.xyz / hv_position.w;
 
   vec4 hv_pointLightPos = viewMatrix * vec4(pointLightPos, 1.0);
   vec3 v_pointLightPos = hv_pointLightPos.xyz / hv_pointLightPos.w;

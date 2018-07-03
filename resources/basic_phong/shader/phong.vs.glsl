@@ -7,12 +7,13 @@ uniform mat4 projMatrix;
 uniform mat4 viewMatrix;
 
 out vec3 v_normal;
-out vec4 hv_position;
+out vec3 v_position;
 
 void main() {
   mat3 normalMatrix = transpose(inverse(mat3(viewMatrix * modelMatrix)));
 
-  v_normal = normalMatrix * vNormal.xyz;
-  hv_position = viewMatrix * modelMatrix * vec4(vPosition, 1);
+  v_normal = normalize(normalMatrix * vNormal.xyz);
+  vec4 hv_position = viewMatrix * modelMatrix * vec4(vPosition, 1);
+  v_position = hv_position.xyz/ hv_position.w;
   gl_Position = projMatrix * hv_position;
 }
