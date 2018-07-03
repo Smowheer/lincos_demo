@@ -440,7 +440,7 @@ void main()
 //    vec3 dcol = ToLinear(dcolor);
 //    vec3 scol = ToLinear(scolor);
 
-    vec3 lcol = vec3(0.8, 0.8, 0.8);
+    vec3 lcol = vec3(8, 8, 8);
     vec3 dcol = ToLinear(vec3(0.8, 0.0, 0.0));
     vec3 scol = ToLinear(vec3(0.0, 0.8, 0.0));
 
