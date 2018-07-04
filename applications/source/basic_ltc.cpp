@@ -26,7 +26,7 @@ void BasicLTC::render() {
 
   glm::mat4 modelMatrix = glm::mat4(1.0f);
   modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0,3.0,-5.0));
-  modelMatrix = glm::rotate(modelMatrix, glm::radians(90.0f), glm::vec3(1.0,0.0,0.0));
+  modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0,0.0,0.0));
   modelMatrix = glm::scale(modelMatrix, glm::vec3(0.2f));
 
   glUseProgram(shader("arealight"));
@@ -64,27 +64,38 @@ void BasicLTC::render() {
     point.draw();
   }
 
-  //for (int i = 0; i < 4; ++i) {
-  //  points[i] = viewMatrix() * points[i];
-  //  points[i] = points[i] / points[i].a;
-  //}
-
   // draw the ground
   glUseProgram(shader("ltc"));
+
+  // vertex shader uniforms
   uniform("ltc", "modelMatrix", glm::mat4(1.0));
   uniform("ltc", "viewMatrix", viewMatrix());
   uniform("ltc", "projMatrix", projectionMatrix());
+
+  // fragment shader uniforms
+  uniform("ltc", "intensity", light_intensity);
+  uniform("ltc", "dcolor", diff_color);
+  uniform("ltc", "scolor", spec_color);
+
+  uniform("ltc", "roughness", roughness);
+
+  uniform("ltc", "clipless", clipless);
+
   uniform("ltc", "p1", glm::vec3(points[0]));
   uniform("ltc", "p2", glm::vec3(points[1]));
   uniform("ltc", "p3", glm::vec3(points[2]));
   uniform("ltc", "p4", glm::vec3(points[3]));
+
+  uniform("ltc", "camera_position", m_cam.position);
+
   uniform("ltc", "ltc_1", 0);
   uniform("ltc", "ltc_2", 1);
-  uniform("ltc", "camera_position", m_cam.position);
+
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, ltc_texture_1);
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, ltc_texture_2);
+
   plane.draw();
 
   glUseProgram(0);
@@ -99,6 +110,16 @@ BasicLTC::BasicLTC(std::string const& resource_path)
  ,point{}
  ,ltc_texture_1{0}
  ,ltc_texture_2{0}
+ ,light_position{glm::vec3(0.0)}
+ ,rotation_x{0.0f}
+ ,rotation_y{0.0f}
+ ,scale_x{1.0f}
+ ,scale_y{1.0f}
+ ,light_intensity{5.0f}
+ ,diff_color{glm::vec3(1.0)}
+ ,spec_color{glm::vec3(1.0)}
+ ,roughness{0.55f}
+ ,clipless{}
 {
   initializeGUI();
   initializeObjects();
@@ -106,6 +127,20 @@ BasicLTC::BasicLTC(std::string const& resource_path)
 }
 
 void BasicLTC::initializeGUI() {
+  TwAddVarRW(tweakBar, "light_position", TW_TYPE_DIR3F, &light_position, "label='light_position'");
+  TwAddVarRW(tweakBar, "rotation_x", TW_TYPE_FLOAT, &rotation_x, "label='rotation_x' min=0 step=1.0 max=360");
+  TwAddVarRW(tweakBar, "rotation_y", TW_TYPE_FLOAT, &rotation_y, "label='rotation_y' min=0 step=1.0 max=360");
+  TwAddVarRW(tweakBar, "scale_x", TW_TYPE_FLOAT, &scale_x, "label='scale_x' min=0.1 step=0.1 max=10");
+  TwAddVarRW(tweakBar, "scale_y", TW_TYPE_FLOAT, &scale_y, "label='scale_y' min=0.1 step=0.1 max=10");
+  TwAddVarRW(tweakBar, "light_intensity", TW_TYPE_FLOAT, &light_intensity, "label='light_intensity' min=0.1 step=0.1 max=10");
+  TwAddVarRW(tweakBar, "diff_color", TW_TYPE_COLOR3F, &diff_color, "label='diff_color'");
+  TwAddVarRW(tweakBar, "spec_color", TW_TYPE_COLOR3F, &spec_color, "label='spec_color'");
+
+  TwAddSeparator(tweakBar, "sep0", nullptr);
+  TwAddVarRW(tweakBar, "roughness", TW_TYPE_FLOAT, &roughness, "label='roughness' min=0.01 step=0.001 max=1");
+
+  TwAddSeparator(tweakBar, "sep1", nullptr);
+  TwAddVarRW(tweakBar, "clipless", TW_TYPE_BOOLCPP, &clipless, "label='clipless'");
 }
 
 // load shader programs

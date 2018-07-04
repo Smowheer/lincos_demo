@@ -33,14 +33,26 @@ class BasicLTC : public Application {
   solidSphere sphere;
   simplePoint point;
 
-
   // Textures
   GLuint ltc_texture_1;
   GLuint ltc_texture_2;
 
-
   // gui options
   //TODO: arealight pos, rotx, roty
+  // Configuration of arealight source
+  glm::vec3 light_position;
+  float rotation_x;
+  float rotation_y;
+  float scale_x;
+  float scale_y;
+  float light_intensity;
+  glm::vec3 diff_color;
+  glm::vec3 spec_color;
+
+  float roughness;
+
+  // Configuration of shader algorithm
+  bool clipless;
 
 };
 

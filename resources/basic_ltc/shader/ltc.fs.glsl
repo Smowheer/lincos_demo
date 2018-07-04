@@ -1,39 +1,28 @@
 #version 330
 
-// bind roughness   {label:"Roughness", default:0.25, min:0.01, max:1, step:0.001}
+// bind intensity   {label:"Light Intensity", default:4, min:0, max:10}
 // bind dcolor      {label:"Diffuse Color",  r:1.0, g:1.0, b:1.0}
 // bind scolor      {label:"Specular Color", r:0.23, g:0.23, b:0.23}
-// bind intensity   {label:"Light Intensity", default:4, min:0, max:10}
-// bind width       {label:"Width",  default: 8, min:0.1, max:15, step:0.1}
-// bind height      {label:"Height", default: 8, min:0.1, max:15, step:0.1}
-// bind roty        {label:"Rotation Y", default: 0, min:0, max:1, step:0.001}
-// bind rotz        {label:"Rotation Z", default: 0, min:0, max:1, step:0.001}
-// bind twoSided    {label:"Two-sided", default:false}
+// bind roughness   {label:"Roughness", default:0.25, min:0.01, max:1, step:0.001}
 // bind clipless    {label:"Clipless Approximation", default:false}
 
-// uniform float roughness;
-// uniform vec3  dcolor;
-// uniform vec3  scolor;
+uniform float intensity;
+uniform vec3  dcolor;
+uniform vec3  scolor;
 
-// uniform float intensity;
-// uniform float width;
-// uniform float height;
-// uniform float roty;
-// uniform float rotz;
+uniform float roughness;
 
-// uniform bool twoSided;
-// uniform bool clipless;
-//
+uniform bool clipless;
 
 uniform vec3 p1;
 uniform vec3 p2;
 uniform vec3 p3;
 uniform vec3 p4;
 
+uniform vec3 camera_position;
+
 uniform sampler2D ltc_1;
 uniform sampler2D ltc_2;
-
-uniform vec3 camera_position;
 
 //in vec3 v_normal;
 //in vec3 v_position;
@@ -41,85 +30,14 @@ uniform vec3 camera_position;
 in vec3 w_normal;
 in vec3 w_position;
 
-// uniform mat4  view;
-// uniform vec2  resolution;
-// uniform int   sampleCount;
-
 const float LUT_SIZE  = 64.0;
 const float LUT_SCALE = (LUT_SIZE - 1.0)/LUT_SIZE;
 const float LUT_BIAS  = 0.5/LUT_SIZE;
 
 const float pi = 3.14159265;
 
-// Tracing and intersection
-///////////////////////////
-// 
-// struct Ray
-// {
-//     vec3 origin;
-//     vec3 dir;
-// };
-// 
-// struct Rect
-// {
-//     vec3  center;
-//     vec3  dirx;
-//     vec3  diry;
-//     float halfx;
-//     float halfy;
-// 
-//     vec4  plane;
-// };
-// 
-// bool RayPlaneIntersect(Ray ray, vec4 plane, out float t)
-// {
-//     t = -dot(plane, vec4(ray.origin, 1.0))/dot(plane.xyz, ray.dir);
-//     return t > 0.0;
-// }
-// 
-// bool RayRectIntersect(Ray ray, Rect rect, out float t)
-// {
-//     bool intersect = RayPlaneIntersect(ray, rect.plane, t);
-//     if (intersect)
-//     {
-//         vec3 pos  = ray.origin + ray.dir*t;
-//         vec3 lpos = pos - rect.center;
-// 
-//         float x = dot(lpos, rect.dirx);
-//         float y = dot(lpos, rect.diry);
-// 
-//         if (abs(x) > rect.halfx || abs(y) > rect.halfy)
-//             intersect = false;
-//     }
-// 
-//     return intersect;
-// }
-// 
-// Camera functions
-///////////////////
-//
-//Ray GenerateCameraRay()
-//{
-//    Ray ray;
-//
-//    vec2 xy = 2.0*gl_FragCoord.xy/resolution - vec2(1.0);
-//
-//    ray.dir = normalize(vec3(xy, 2.0));
-//
-//    float focalDistance = 2.0;
-//    float ft = focalDistance/ray.dir.z;
-//    vec3 pFocus = ray.dir*ft;
-//
-//    ray.origin = vec3(0);
-//    ray.dir    = normalize(pFocus - ray.origin);
-//
-//    // Apply camera transform
-//    ray.origin = (view*vec4(ray.origin, 1)).xyz;
-//    ray.dir    = (view*vec4(ray.dir,    0)).xyz;
-//
-//    return ray;
-//}
-//
+
+// TODO do we need this?
 vec3 mul(mat3 m, vec3 v)
 {
     return m * v;
@@ -129,30 +47,7 @@ mat3 mul(mat3 m1, mat3 m2)
 {
     return m1 * m2;
 }
-//
-//vec3 rotation_y(vec3 v, float a)
-//{
-//    vec3 r;
-//    r.x =  v.x*cos(a) + v.z*sin(a);
-//    r.y =  v.y;
-//    r.z = -v.x*sin(a) + v.z*cos(a);
-//    return r;
-//}
-//
-//vec3 rotation_z(vec3 v, float a)
-//{
-//    vec3 r;
-//    r.x =  v.x*cos(a) - v.y*sin(a);
-//    r.y =  v.x*sin(a) + v.y*cos(a);
-//    r.z =  v.z;
-//    return r;
-//}
-//
-//vec3 rotation_yz(vec3 v, float ay, float az)
-//{
-//    return rotation_z(rotation_y(v, ay), az);
-//}
-//
+
 // Linearly Transformed Cosines
 ///////////////////////////////
 
@@ -308,10 +203,6 @@ vec3 LTC_Evaluate(
     // integrate
     float sum = 0.0;
 
-    // TODO remove
-    bool clipless = false;
-    bool twoSided = false;
-
     if (clipless)
     {
         vec3 dir = points[0].xyz - P;
@@ -343,7 +234,7 @@ vec3 LTC_Evaluate(
 
         sum = len*scale;
 
-        if (behind && !twoSided)
+        if (behind)
             sum = 0.0;
     }
     else
@@ -369,7 +260,6 @@ vec3 LTC_Evaluate(
         if (n == 5)
             sum += IntegrateEdge(L[4], L[0]);
 
-        // sum = twoSided ? abs(sum) : max(0.0, sum);
         sum = max(0.0, sum);
     }
 
@@ -378,33 +268,6 @@ vec3 LTC_Evaluate(
     return Lo_i;
 }
 
-// Scene helpers
-////////////////
-//
-//void InitRect(out Rect rect)
-//{
-//    rect.dirx = rotation_yz(vec3(1, 0, 0), roty*2.0*pi, rotz*2.0*pi);
-//    rect.diry = rotation_yz(vec3(0, 1, 0), roty*2.0*pi, rotz*2.0*pi);
-//
-//    rect.center = vec3(0, 6, 32);
-//    rect.halfx  = 0.5*width;
-//    rect.halfy  = 0.5*height;
-//
-//    vec3 rectNormal = cross(rect.dirx, rect.diry);
-//    rect.plane = vec4(rectNormal, -dot(rectNormal, rect.center));
-//}
-//
-//void InitRectPoints(Rect rect, out vec3 points[4])
-//{
-//    vec3 ex = rect.halfx*rect.dirx;
-//    vec3 ey = rect.halfy*rect.diry;
-//
-//    points[0] = rect.center - ex - ey;
-//    points[1] = rect.center + ex - ey;
-//    points[2] = rect.center + ex + ey;
-//    points[3] = rect.center - ex + ey;
-//}
-//
 // Misc. helpers
 ////////////////
 
@@ -425,11 +288,8 @@ out vec4 FragColor;
 
 void main()
 {
-//    Rect rect;
-//    InitRect(rect);
 
     vec3 points[4];
-//    InitRectPoints(rect, points);
     points[0] = p1;
     points[1] = p2;
     points[2] = p3;
@@ -440,28 +300,18 @@ void main()
 //    vec3 dcol = ToLinear(dcolor);
 //    vec3 scol = ToLinear(scolor);
 
-    vec3 lcol = vec3(8, 8, 8);
-    vec3 dcol = ToLinear(vec3(0.8, 0.0, 0.0));
+    vec3 lcol = vec3(8.0, 8.0, 8.0);
+    vec3 dcol = ToLinear(vec3(0.0, 0.0, 0.0));
     vec3 scol = ToLinear(vec3(0.0, 0.8, 0.0));
 
     vec3 col = vec3(0);
 
-    // Ray ray = GenerateCameraRay();
-
-//    float distToFloor;
-//    bool hitFloor = RayPlaneIntersect(ray, floorPlane, distToFloor);
-//    if (hitFloor)
-//    {
-    //vec3 pos = ray.origin + ray.dir*distToFloor;
-
-    //vec3 N = floorPlane.xyz;
-    //vec3 V = -ray.dir;
     vec3 pos = w_position;
     vec3 N = normalize(w_normal);
     vec3 V = normalize(camera_position - w_position);
 
     float ndotv = saturate(dot(N, V));
-    float roughness = 0.1;
+    // float roughness = 0.1;
     vec2 uv = vec2(roughness, sqrt(1.0 - ndotv));
     uv = uv*LUT_SCALE + LUT_BIAS;
 
@@ -477,16 +327,11 @@ void main()
     vec3 spec = LTC_Evaluate(N, V, pos, Minv, points);
     // BRDF shadowing and Fresnel
     spec *= scol*t2.x + (1.0 - scol)*t2.y;
+    //spec *= scol*t2.y + (1.0 - scol)*t2.z;
 
     vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points);
 
     col = lcol*(spec + dcol*diff);
-//    }
-
-//    float distToRect;
-//    if (RayRectIntersect(ray, rect, distToRect))
-//        if ((distToRect < distToFloor) || !hitFloor)
-//            col = lcol;
 
     FragColor = vec4(col, 1.0);
 }
