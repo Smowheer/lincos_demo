@@ -115,8 +115,8 @@ BasicLTC::BasicLTC(std::string const& resource_path)
  ,rotation_y{0.0f}
  ,scale_x{1.0f}
  ,scale_y{1.0f}
- ,light_intensity{5.0f}
- ,diff_color{glm::vec3(1.0)}
+ ,light_intensity{15.0f}
+ ,diff_color{glm::vec3(0.0)}
  ,spec_color{glm::vec3(1.0)}
  ,roughness{0.55f}
  ,clipless{}
@@ -132,7 +132,7 @@ void BasicLTC::initializeGUI() {
   TwAddVarRW(tweakBar, "rotation_y", TW_TYPE_FLOAT, &rotation_y, "label='rotation_y' min=0 step=1.0 max=360");
   TwAddVarRW(tweakBar, "scale_x", TW_TYPE_FLOAT, &scale_x, "label='scale_x' min=0.1 step=0.1 max=10");
   TwAddVarRW(tweakBar, "scale_y", TW_TYPE_FLOAT, &scale_y, "label='scale_y' min=0.1 step=0.1 max=10");
-  TwAddVarRW(tweakBar, "light_intensity", TW_TYPE_FLOAT, &light_intensity, "label='light_intensity' min=0.1 step=0.1 max=10");
+  TwAddVarRW(tweakBar, "light_intensity", TW_TYPE_FLOAT, &light_intensity, "label='light_intensity' min=0.1 step=0.1 max=20");
   TwAddVarRW(tweakBar, "diff_color", TW_TYPE_COLOR3F, &diff_color, "label='diff_color'");
   TwAddVarRW(tweakBar, "spec_color", TW_TYPE_COLOR3F, &spec_color, "label='spec_color'");
 

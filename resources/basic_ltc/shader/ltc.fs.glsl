@@ -1,10 +1,5 @@
 #version 330
-
-// bind intensity   {label:"Light Intensity", default:4, min:0, max:10}
-// bind dcolor      {label:"Diffuse Color",  r:1.0, g:1.0, b:1.0}
-// bind scolor      {label:"Specular Color", r:0.23, g:0.23, b:0.23}
-// bind roughness   {label:"Roughness", default:0.25, min:0.01, max:1, step:0.001}
-// bind clipless    {label:"Clipless Approximation", default:false}
+precision highp float;
 
 uniform float intensity;
 uniform vec3  dcolor;
@@ -38,16 +33,16 @@ const float pi = 3.14159265;
 
 
 // TODO do we need this?
-vec3 mul(mat3 m, vec3 v)
-{
-    return m * v;
-}
-
-mat3 mul(mat3 m1, mat3 m2)
-{
-    return m1 * m2;
-}
-
+//vec3 mul(mat3 m, vec3 v)
+//{
+//    return m * v;
+//}
+//
+//mat3 mul(mat3 m1, mat3 m2)
+//{
+//    return m1 * m2;
+//}
+//
 // Linearly Transformed Cosines
 ///////////////////////////////
 
@@ -68,6 +63,14 @@ vec3 IntegrateEdgeVec(vec3 v1, vec3 v2)
 float IntegrateEdge(vec3 v1, vec3 v2)
 {
     return IntegrateEdgeVec(v1, v2).z;
+
+    //float cosTheta = dot(v1, v2);
+    //cosTheta = clamp(cosTheta, -0.9999, 0.9999);
+
+    //float theta = acos(cosTheta);
+    //float res = cross(v1, v2).z * theta / sin(theta);
+
+    //return res;
 }
 
 void ClipQuadToHorizon(inout vec3 L[5], out int n)
@@ -191,14 +194,19 @@ vec3 LTC_Evaluate(
     T2 = cross(N, T1);
 
     // rotate area light in (T1, T2, N) basis
-    Minv = mul(Minv, transpose(mat3(T1, T2, N)));
+    Minv = Minv * transpose(mat3(T1, T2, N));
+    //Minv = mul(Minv, transpose(mat3(T1, T2, N)));
 
     // polygon (allocate 5 vertices for clipping)
     vec3 L[5];
-    L[0] = mul(Minv, points[0] - P);
-    L[1] = mul(Minv, points[1] - P);
-    L[2] = mul(Minv, points[2] - P);
-    L[3] = mul(Minv, points[3] - P);
+    //L[0] = mul(Minv, points[0] - P);
+    //L[1] = mul(Minv, points[1] - P);
+    //L[2] = mul(Minv, points[2] - P);
+    //L[3] = mul(Minv, points[3] - P);
+    L[0] = Minv * (points[0] - P);
+    L[1] = Minv * (points[1] - P);
+    L[2] = Minv * (points[2] - P);
+    L[3] = Minv * (points[3] - P);
 
     // integrate
     float sum = 0.0;
@@ -282,7 +290,7 @@ vec3 PowVec3(vec3 v, float p)
 }
 
 const float gamma = 2.2;
-vec3 ToLinear(vec3 v) { return PowVec3(v, gamma); }
+vec3 ToLinear(vec3 v) { return PowVec3(v, 1.0/gamma); }
 
 out vec4 FragColor;
 
@@ -296,42 +304,43 @@ void main()
     points[3] = p4;
     vec4 floorPlane = vec4(0, 1, 0, 0);
 
-//    vec3 lcol = vec3(intensity);
-//    vec3 dcol = ToLinear(dcolor);
-//    vec3 scol = ToLinear(scolor);
-
-    vec3 lcol = vec3(8.0, 8.0, 8.0);
-    vec3 dcol = ToLinear(vec3(0.0, 0.0, 0.0));
-    vec3 scol = ToLinear(vec3(0.0, 0.8, 0.0));
+    vec3 lcol = vec3(intensity);
+    vec3 dcol = ToLinear(dcolor);
+    vec3 scol = ToLinear(scolor);
 
     vec3 col = vec3(0);
 
     vec3 pos = w_position;
     vec3 N = normalize(w_normal);
+    N = vec3(0., 1., 0.);
     vec3 V = normalize(camera_position - w_position);
+    if (dot(N, V) < 0.0) {
+      N = normalize(N - 1.01*V*dot(N, V));
+    }
 
     float ndotv = saturate(dot(N, V));
-    // float roughness = 0.1;
     vec2 uv = vec2(roughness, sqrt(1.0 - ndotv));
     uv = uv*LUT_SCALE + LUT_BIAS;
+		
 
     vec4 t1 = texture(ltc_1, uv);
     vec4 t2 = texture(ltc_2, uv);
 
     mat3 Minv = mat3(
         vec3(t1.x, 0, t1.y),
-        vec3(  0,  1,    0),
-        vec3(t1.z, 0, t1.w)
+        vec3(  0, t1.z,  0),
+        vec3(t1.w, 0, t2.x)
         );
 
     vec3 spec = LTC_Evaluate(N, V, pos, Minv, points);
     // BRDF shadowing and Fresnel
-    spec *= scol*t2.x + (1.0 - scol)*t2.y;
-    //spec *= scol*t2.y + (1.0 - scol)*t2.z;
+    spec *= scol*t2.y + (1.0 - scol)*t2.z;
 
     vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points);
 
     col = lcol*(spec + dcol*diff);
 
     FragColor = vec4(col, 1.0);
+
+    // TODO somehow high intensity seems to cause trouble
 }
