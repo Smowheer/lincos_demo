@@ -19,13 +19,20 @@ class BasicLTC : public Application {
 
   // draw all objects
   void render();
-  void renderScene();
 
  protected:
   // common methods
   void initializeGUI();
   void initializeShaderPrograms();
   void initializeObjects();
+
+  // own methods
+  void renderScene();
+  void resize() override;
+
+  // TODO maybe this is bs
+  unsigned int render_clear_count;
+  unsigned int render_clear_modulo;
 
   // render objects
   simpleQuad  quad;
@@ -38,14 +45,12 @@ class BasicLTC : public Application {
   GLuint ltc_texture_1;
   GLuint ltc_texture_2;
 
-  // rtt Framebuffer
+  // ACES Framebuffer stuff
   GLuint rtt_framebuffer;
   GLuint depthbuffer;
   GLuint rtt_texture;
 
   // gui options
-  //TODO: arealight pos, rotx, roty
-  // Configuration of arealight source
   glm::vec3 light_position;
   float rotation_x;
   float rotation_y;

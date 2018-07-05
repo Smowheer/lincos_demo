@@ -68,6 +68,9 @@ class Application {
   // tweak bar
   TwBar* tweakBar;
 
+  // rendered frames until last callback
+  unsigned int rendered_frames;
+
  private:
   // shader storage
   std::map<std::string, uint32_t> m_shader_handles{};
@@ -80,6 +83,7 @@ class Application {
   glm::fmat4 m_viewMatrix;
   glm::fmat4 m_projMatrix;
   glm::uvec2 m_resolution;
+
 };
 
 

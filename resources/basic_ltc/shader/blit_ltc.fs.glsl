@@ -80,13 +80,11 @@ void main()
     vec4 col = texture(tex, pos);
 
     // Rescale by number of samples
-    //col /= col.w;
+    col /= col.w;
 
     col.rgb = aces_fitted(col.rgb);
     col.rgb = ToSRGB(col.rgb);
 
-    //FragColor = vec4(col.x, 0.0, 0.0, 1.0);
-    //FragColor = vec4(1.0, 0.0, 0.0, 1.0);
     FragColor = vec4(col);
 }
 

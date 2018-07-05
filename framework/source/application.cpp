@@ -17,10 +17,12 @@ using namespace gl;
 
 #include "shader_loader.hpp"
 
+
 Application::Application(std::string const& resource_path)
  :m_resource_path{resource_path}
  ,m_cam{1.0f, 1.0f, glm::vec3(3.0f, 16.0f, 22.f)}
  ,tweakBar{TwNewBar("Settings")}
+ ,rendered_frames{0}
  ,m_shader_handles{}
  ,m_shader_files{}
  ,m_pressed_right{false}
@@ -147,6 +149,8 @@ void Application::keyCallback(GLFWwindow* w, int key, int scancode, int action, 
              "m_cam-pos: " << p.y << ", " << p.y << ", " << p.z << std::endl;
       break;
   }
+
+  rendered_frames = 0;
 }
 
 void Application::buttonCallback(GLFWwindow* w, int button, int action, int mods) {
@@ -176,6 +180,8 @@ void Application::buttonCallback(GLFWwindow* w, int button, int action, int mods
         m_pressed_middle = false;
       break;
   }
+
+  rendered_frames = 0;
 }
 
 void Application::cursorCallback(GLFWwindow* w, double x, double y) {
@@ -208,6 +214,8 @@ void Application::cursorCallback(GLFWwindow* w, double x, double y) {
   }
 
   updateCamera();
+
+  rendered_frames = 0;
 }
 
 void Application::scrollCallback(GLFWwindow* w, double offset_x, double offset_y) {

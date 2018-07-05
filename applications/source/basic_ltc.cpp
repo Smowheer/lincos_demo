@@ -23,7 +23,10 @@
 
 void BasicLTC::render() {
   glBindFramebuffer(GL_FRAMEBUFFER, rtt_framebuffer);
+  //glEnable(GL_BLEND);
+  //glBlendFunc(GL_ONE, GL_ONE);
   renderScene();
+  //glDisable(GL_BLEND);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
@@ -31,7 +34,7 @@ void BasicLTC::render() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glUseProgram(shader("blit"));
-  uniform("blit", "resolution", glm::vec2(1024.0, 768.0)); // TODO
+  uniform("blit", "resolution", glm::vec2(resolution()));
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, rtt_texture);
   uniform("blit", "tex", 0);
@@ -42,6 +45,13 @@ void BasicLTC::render() {
 void BasicLTC::renderScene() {
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f); 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  /*
+  if (rendered_frames == 0) {
+    glClear(GL_COLOR_BUFFER_BIT);
+  }
+  rendered_frames++;
+  render_clear_count = (render_clear_count + 1) % render_clear_modulo;
+  */
 
   glm::mat4 modelMatrix = glm::mat4(1.0f);
   modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0,3.0,-5.0));
@@ -122,6 +132,8 @@ void BasicLTC::renderScene() {
 
 BasicLTC::BasicLTC(std::string const& resource_path)
  :Application{resource_path + "basic_ltc/"}
+ ,render_clear_count{0}
+ ,render_clear_modulo{100}
  ,quad{}
  ,teaPot{m_resource_path + "../shared/data/teapot.obj"}
  ,plane{0.0f, 12.0f}
@@ -208,9 +220,33 @@ void BasicLTC::initializeObjects() {
   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, dims.x, dims.y);
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthbuffer);
 
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rtt_texture, 0);
+  // // Set the list of draw buffers.
+  GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
+  glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
+  //
+  // Always check that our framebuffer is ok
+  if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    std::cerr << "Framebuffer incomplete" << std::endl;
+  }
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
-  // glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture,
-  // 0);
+void BasicLTC::resize() {
+  glBindFramebuffer(GL_FRAMEBUFFER, rtt_framebuffer);
+
+  // framebuffer texture
+  glBindTexture(GL_TEXTURE_2D, rtt_texture);
+  auto dims = resolution();
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, dims.x, dims.y, 0, GL_RGBA, GL_FLOAT, 0);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+  // The depth buffer
+  glBindRenderbuffer(GL_RENDERBUFFER, depthbuffer);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, dims.x, dims.y);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthbuffer);
+
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rtt_texture, 0);
   // // Set the list of draw buffers.
   GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
