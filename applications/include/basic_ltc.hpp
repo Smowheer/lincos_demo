@@ -19,6 +19,7 @@ class BasicLTC : public Application {
 
   // draw all objects
   void render();
+  void renderScene();
 
  protected:
   // common methods
@@ -36,6 +37,11 @@ class BasicLTC : public Application {
   // Textures
   GLuint ltc_texture_1;
   GLuint ltc_texture_2;
+
+  // rtt Framebuffer
+  GLuint rtt_framebuffer;
+  GLuint depthbuffer;
+  GLuint rtt_texture;
 
   // gui options
   //TODO: arealight pos, rotx, roty

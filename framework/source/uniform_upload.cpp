@@ -13,6 +13,9 @@ void glUniform(int loc, unsigned const* i, unsigned cnt) {
 void glUniform(int loc, float const* i, unsigned cnt) {
   glUniform1fv(loc, cnt, i);
 }
+void glUniform(int loc, glm::fvec2 const* i, unsigned cnt) {
+  glUniform2fv(loc, cnt, (float*)i);
+}
 void glUniform(int loc, glm::fvec3 const* i, unsigned cnt) {
   glUniform3fv(loc, cnt, (float*)i);
 }

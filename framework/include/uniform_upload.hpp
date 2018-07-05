@@ -23,6 +23,7 @@ void glUniform(int loc, std::initializer_list<T> const& i);
 void glUniform(int loc, int const* i, unsigned cnt);
 void glUniform(int loc, glm::uint const* i, unsigned cnt);
 void glUniform(int loc, float const* i, unsigned cnt);
+void glUniform(int loc, glm::fvec2 const* i, unsigned cnt);
 void glUniform(int loc, glm::fvec3 const* i, unsigned cnt);
 void glUniform(int loc, glm::fvec4 const* i, unsigned cnt);
 void glUniform(int loc, glm::uvec2 const* i, unsigned cnt);
