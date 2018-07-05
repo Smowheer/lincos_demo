@@ -84,7 +84,7 @@ void Launcher::initialize() {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   // create m_window, if unsuccessfull, quit
-  m_window = glfwCreateWindow(WIDTH, HEIGHT, "InCG Assignment", NULL, NULL);
+  m_window = glfwCreateWindow(WIDTH, HEIGHT, "LinCos Demo", NULL, NULL);
   if (!m_window) {
     glfwTerminate();
     std::exit(EXIT_FAILURE);
