@@ -18,6 +18,7 @@
 
 #include <vector>
 #include <iostream>
+#include <sstream>
 
 #include "shader_loader.hpp"
 
@@ -38,16 +39,12 @@ void BasicLTC::render() {
     // render with gbuffer
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f); 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
     render_ltc_quad();
   }
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  // TODO: how to render light sources?
-  // two ideas:
-  // 1. Render light source slightly behind (planar polygonal light sources)
-  // 2. Render somehow after some stage TODO
-
-  // draw final with ACES
+  // draw final with ACES TODO understand ACES!
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f); 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glUseProgram(shader("ltc_blit"));
@@ -57,25 +54,6 @@ void BasicLTC::render() {
   uniform("ltc_blit", "tex", 0);
   quad.draw();
   glUseProgram(0);
-  
-  // old version
-  //glBindFramebuffer(GL_FRAMEBUFFER, rtt_framebuffer);
-  //glClearColor(0.1f, 0.1f, 0.1f, 1.0f); 
-  //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  //renderScene();
-  //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-  //glClearColor(0.1f, 0.1f, 0.1f, 1.0f); 
-  //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  //glUseProgram(shader("blit"));
-  //uniform("blit", "resolution", glm::vec2(resolution()));
-  //glActiveTexture(GL_TEXTURE0);
-  //glBindTexture(GL_TEXTURE_2D, rtt_texture);
-  //uniform("blit", "tex", 0);
-  //quad.draw();
-  //glUseProgram(0);
 }
 
 void BasicLTC::render_gbuffer() {
@@ -86,6 +64,8 @@ void BasicLTC::render_gbuffer() {
   uniform("ltc_gbuffer", "modelMatrix", glm::mat4(1.0));
   uniform("ltc_gbuffer", "viewMatrix", viewMatrix());
   uniform("ltc_gbuffer", "projMatrix", projectionMatrix());
+
+  // draw ground
   plane.draw();
 
   // draw the pot ( uniforms stay the same :) )
@@ -95,169 +75,104 @@ void BasicLTC::render_gbuffer() {
 }
 
 void BasicLTC::render_ltc_quad() {
-  glm::mat4 modelMatrix = glm::mat4(1.0f);
-  modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0,3.0,-5.0));
-  modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0,0.0,0.0));
-  modelMatrix = glm::scale(modelMatrix, glm::vec3(0.2f));
-
+  // setup global stuff
   std::vector<glm::vec4> points = {
    glm::vec4(-12.0f, 0.0f, -12.0f, 1.0f),
    glm::vec4(-12.0f, 0.0f, 12.0f, 1.0f),
    glm::vec4(12.0f, 0.0f, 12.0f, 1.0f),
    glm::vec4(12.0f, 0.0f, -12.0f, 1.0f)
   };
+  std::vector<glm::vec4> current_points(4, glm::vec4(0.0));
   std::vector<glm::vec3> colors = {
     glm::vec3(1.0,0.0,0.0),
     glm::vec3(0.0,1.0,0.0),
     glm::vec3(0.0,0.0,1.0),
     glm::vec3(1.0,1.0,0.0)
   };
-
+  // set global uniforms
   glUseProgram(shader("arealight"));
-
-  // setup view and proj matrix
-  uniform("arealight", "viewMatrix", viewMatrix());
-  uniform("arealight", "projMatrix", projectionMatrix());
-
-  // draw the area light
-  uniform("arealight", "modelMatrix", modelMatrix);
-  uniform("arealight", "u_color", glm::vec3(1.0));
-  plane.draw();
-
-  // draw the points passed to the ltc shader
-  glPointSize(10.0f);
-  for (int i = 0; i < 4; ++i) {
-    points[i] = modelMatrix * points[i];
-    points[i] = points[i] / points[i].a;
-    glm::mat4 pModel = glm::translate(glm::mat4(1.0f), glm::vec3(points[i]));
-    uniform("arealight", "modelMatrix", pModel);
-    uniform("arealight", "u_color", colors[i]);
-    point.draw();
+  {
+    // setup view and proj matrix
+    uniform("arealight", "viewMatrix", viewMatrix());
+    uniform("arealight", "projMatrix", projectionMatrix());
   }
+  glUseProgram(0);
 
-  // draw the ground
   glUseProgram(shader("ltc_quad"));
+  {
+    uniform("ltc_quad", "normal", 0);
+    uniform("ltc_quad", "position", 1);
+    uniform("ltc_quad", "depth", 2);
 
-  // fragment shader uniforms
-  uniform("ltc_quad", "normal", 0);
-  uniform("ltc_quad", "position", 1);
-  uniform("ltc_quad", "depth", 2);
+    uniform("ltc_quad", "roughness", roughness);
 
-  uniform("ltc_quad", "intensity", light_intensity);
-  uniform("ltc_quad", "dcolor", diff_color);
-  uniform("ltc_quad", "scolor", spec_color);
+    uniform("ltc_quad", "clipless", clipless);
 
-  uniform("ltc_quad", "roughness", roughness);
+    uniform("ltc_quad", "camera_position", m_cam.position);
 
-  uniform("ltc_quad", "clipless", clipless);
+    uniform("ltc_quad", "ltc_1", 3);
+    uniform("ltc_quad", "ltc_2", 4);
 
-  uniform("ltc_quad", "p1", glm::vec3(points[0]));
-  uniform("ltc_quad", "p2", glm::vec3(points[1]));
-  uniform("ltc_quad", "p3", glm::vec3(points[2]));
-  uniform("ltc_quad", "p4", glm::vec3(points[3]));
-
-  uniform("ltc_quad", "camera_position", m_cam.position);
-
-  uniform("ltc_quad", "ltc_1", 3);
-  uniform("ltc_quad", "ltc_2", 4);
-
-  glActiveTexture(GL_TEXTURE0);
-  tex_normal.bind();
-  glActiveTexture(GL_TEXTURE1);
-  tex_position.bind();
-  glActiveTexture(GL_TEXTURE2);
-  tex_depth.bind();
-
-  glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, ltc_texture_1);
-  glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, ltc_texture_2);
-
-  quad.draw();
-
-  glUseProgram(0);
-}
-
-void BasicLTC::renderScene() {
-
-  glm::mat4 modelMatrix = glm::mat4(1.0f);
-  modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0,3.0,-5.0));
-  modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0,0.0,0.0));
-  modelMatrix = glm::scale(modelMatrix, glm::vec3(0.2f));
-
-  glUseProgram(shader("arealight"));
-
-  // setup view and proj matrix
-  uniform("arealight", "viewMatrix", viewMatrix());
-  uniform("arealight", "projMatrix", projectionMatrix());
-
-  // draw the area light
-  uniform("arealight", "modelMatrix", modelMatrix);
-  uniform("arealight", "u_color", glm::vec3(1.0));
-  plane.draw();
-
-  // draw the points passed to the ltc shader
-  glPointSize(10.0f);
-
-  std::vector<glm::vec4> points = {
-   glm::vec4(-12.0f, 0.0f, -12.0f, 1.0f),
-   glm::vec4(-12.0f, 0.0f, 12.0f, 1.0f),
-   glm::vec4(12.0f, 0.0f, 12.0f, 1.0f),
-   glm::vec4(12.0f, 0.0f, -12.0f, 1.0f)
-  };
-  std::vector<glm::vec3> colors = {
-    glm::vec3(1.0,0.0,0.0),
-    glm::vec3(0.0,1.0,0.0),
-    glm::vec3(0.0,0.0,1.0),
-    glm::vec3(1.0,1.0,0.0)
-  };
-  for (int i = 0; i < 4; ++i) {
-    points[i] = modelMatrix * points[i];
-    points[i] = points[i] / points[i].a;
-    glm::mat4 pModel = glm::translate(glm::mat4(1.0f), glm::vec3(points[i]));
-    uniform("arealight", "modelMatrix", pModel);
-    uniform("arealight", "u_color", colors[i]);
-    point.draw();
+    uniform("ltc_quad", "num_lights", (int)(area_lights.size()));
   }
-
-  // draw the ground
-  glUseProgram(shader("ltc"));
-
-  // vertex shader uniforms
-  uniform("ltc", "modelMatrix", glm::mat4(1.0));
-  uniform("ltc", "viewMatrix", viewMatrix());
-  uniform("ltc", "projMatrix", projectionMatrix());
-
-  // fragment shader uniforms
-  uniform("ltc", "intensity", light_intensity);
-  uniform("ltc", "dcolor", diff_color);
-  uniform("ltc", "scolor", spec_color);
-
-  uniform("ltc", "roughness", roughness);
-
-  uniform("ltc", "clipless", clipless);
-
-  uniform("ltc", "p1", glm::vec3(points[0]));
-  uniform("ltc", "p2", glm::vec3(points[1]));
-  uniform("ltc", "p3", glm::vec3(points[2]));
-  uniform("ltc", "p4", glm::vec3(points[3]));
-
-  uniform("ltc", "camera_position", m_cam.position);
-
-  uniform("ltc", "ltc_1", 0);
-  uniform("ltc", "ltc_2", 1);
-
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, ltc_texture_1);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, ltc_texture_2);
-
-  plane.draw();
-
-  //uniform("ltc", "modelMatrix", glm::translate(glm::mat4(1.0), glm::vec3(0.0, 4.0, 0.0)));
-  teaPot.draw();
-
   glUseProgram(0);
+  
+  // first draw the lights
+  for (unsigned int i = 0; i < area_lights.size(); ++i) {
+    glm::mat4 modelMatrix = glm::mat4(1.0f);
+    modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0,3.0,-5.0));
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0,0.0,0.0));
+    modelMatrix = glm::scale(modelMatrix, glm::vec3(0.2f));
+    glUseProgram(shader("arealight"));
+    {
+      // draw the area light
+      uniform("arealight", "modelMatrix", modelMatrix);
+      uniform("arealight", "u_color", glm::vec3(1.0));
+      plane.draw();
+
+      // draw the points passed to the ltc shader
+      glPointSize(10.0f);
+      for (int j = 0; j < 4; ++j) {
+        current_points[j] = modelMatrix * points[j];
+        current_points[j] = current_points[j] / current_points[j].a;
+        glm::mat4 pModel = glm::translate(glm::mat4(1.0f), glm::vec3(current_points[j]));
+        uniform("arealight", "modelMatrix", pModel);
+        uniform("arealight", "u_color", colors[j]);
+        point.draw();
+      }
+    }
+    glUseProgram(0);
+
+    // draw with ltc
+    glUseProgram(shader("ltc_quad"));
+    AreaLight l = area_lights[i];
+    std::stringstream ss;
+    ss << "area_lights[" << i << "].";
+    uniform("ltc_quad", ss.str() + "intensity", l.light_intensity);
+    uniform("ltc_quad", ss.str() + "dcolor", l.diff_color);
+    uniform("ltc_quad", ss.str() + "scolor", l.spec_color);
+
+    uniform("ltc_quad", ss.str() + "p1", glm::vec3(current_points[0]));
+    uniform("ltc_quad", ss.str() + "p2", glm::vec3(current_points[1]));
+    uniform("ltc_quad", ss.str() + "p3", glm::vec3(current_points[2]));
+    uniform("ltc_quad", ss.str() + "p4", glm::vec3(current_points[3]));
+
+    // bind all textures
+    glActiveTexture(GL_TEXTURE0);
+    tex_normal.bind();
+    glActiveTexture(GL_TEXTURE1);
+    tex_position.bind();
+    glActiveTexture(GL_TEXTURE2);
+    tex_depth.bind();
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, ltc_texture_1);
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, ltc_texture_2);
+    // draw screen quad
+    quad.draw();
+
+    glUseProgram(0);
+  }
 }
 
 BasicLTC::BasicLTC(std::string const& resource_path)
@@ -265,26 +180,30 @@ BasicLTC::BasicLTC(std::string const& resource_path)
  ,quad{}
  ,teaPot{m_resource_path + "../shared/data/teapot.obj"}
  ,plane{0.0f, 12.0f}
- ,sphere{1, 20, 20}
  ,point{}
  ,ltc_texture_1{0}
  ,ltc_texture_2{0}
  ,gbuffer{}
- //,tex_diffuse{resolution(), GL_RGBA32F}
  ,tex_normal{resolution(), GL_RGBA32F}
  ,tex_position{resolution(), GL_RGBA32F}
  ,tex_depth{resolution(), GL_DEPTH_COMPONENT}
  ,rtt_framebuffer{0}
  ,depthbuffer{0}
  ,rtt_texture{0}
- ,light_position{glm::vec3(0.0)}
- ,rotation_x{0.0f}
- ,rotation_y{0.0f}
- ,scale_x{1.0f}
- ,scale_y{1.0f}
- ,light_intensity{15.0f}
- ,diff_color{glm::vec3(0.0)}
- ,spec_color{glm::vec3(1.0)}
+ ,area_lights{
+   {
+     AreaLight(
+         glm::vec3(0.0),
+         0.0f,
+         0.0f,
+         1.0f,
+         1.0f,
+         15.0f,
+         glm::vec3(0.0),
+         glm::vec3(1.0)),
+     AreaLight()
+   }
+ }
  ,roughness{0.55f}
  ,clipless{}
 {
@@ -294,31 +213,37 @@ BasicLTC::BasicLTC(std::string const& resource_path)
 }
 
 void BasicLTC::initializeGUI() {
-  TwAddVarRW(tweakBar, "light_position", TW_TYPE_DIR3F, &light_position, "label='light_position'");
-  TwAddVarRW(tweakBar, "rotation_x", TW_TYPE_FLOAT, &rotation_x, "label='rotation_x' min=0 step=1.0 max=360");
-  TwAddVarRW(tweakBar, "rotation_y", TW_TYPE_FLOAT, &rotation_y, "label='rotation_y' min=0 step=1.0 max=360");
-  TwAddVarRW(tweakBar, "scale_x", TW_TYPE_FLOAT, &scale_x, "label='scale_x' min=0.1 step=0.1 max=10");
-  TwAddVarRW(tweakBar, "scale_y", TW_TYPE_FLOAT, &scale_y, "label='scale_y' min=0.1 step=0.1 max=10");
-  TwAddVarRW(tweakBar, "light_intensity", TW_TYPE_FLOAT, &light_intensity, "label='light_intensity' min=0.1 step=0.1 max=20");
-  TwAddVarRW(tweakBar, "diff_color", TW_TYPE_COLOR3F, &diff_color, "label='diff_color'");
-  TwAddVarRW(tweakBar, "spec_color", TW_TYPE_COLOR3F, &spec_color, "label='spec_color'");
+  for (unsigned int i = 0; i < area_lights.size(); ++i) {
+    AreaLight& l = area_lights[i]; // reference!
+    std::stringstream ss;
+    ss << i;
+    TwAddSeparator(tweakBar, ("sep" + ss.str()).c_str(), nullptr);
+    TwAddVarRW(tweakBar, ("light_position" + ss.str()).c_str(), TW_TYPE_DIR3F, &(l.light_position), "label='light_position'");
+    TwAddVarRW(tweakBar, ("rotation_x" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.rotation_x), "label='rotation_x' min=0 step=1.0 max=360");
+    TwAddVarRW(tweakBar, ("rotation_y" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.rotation_y), "label='rotation_y' min=0 step=1.0 max=360");
+    TwAddVarRW(tweakBar, ("scale_x" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.scale_x), "label='scale_x' min=0.1 step=0.1 max=10");
+    TwAddVarRW(tweakBar, ("scale_y" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.scale_y), "label='scale_y' min=0.1 step=0.1 max=10");
+    TwAddVarRW(tweakBar, ("light_intensity" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.light_intensity), "label='light_intensity' min=0.1 step=0.1 max=30");
+    TwAddVarRW(tweakBar, ("diff_color" + ss.str()).c_str(), TW_TYPE_COLOR3F, &(l.diff_color), "label='diff_color'");
+    TwAddVarRW(tweakBar, ("spec_color" + ss.str()).c_str(), TW_TYPE_COLOR3F, &(l.spec_color), "label='spec_color'");
+  }
 
-  TwAddSeparator(tweakBar, "sep0", nullptr);
+  TwAddSeparator(tweakBar, "sep123", nullptr);
   TwAddVarRW(tweakBar, "roughness", TW_TYPE_FLOAT, &roughness, "label='roughness' min=0.01 step=0.001 max=1");
 
-  TwAddSeparator(tweakBar, "sep1", nullptr);
+  TwAddSeparator(tweakBar, "sep124", nullptr);
   TwAddVarRW(tweakBar, "clipless", TW_TYPE_BOOLCPP, &clipless, "label='clipless'");
 }
 
 // load shader programs
 void BasicLTC::initializeShaderPrograms() {
-  initializeShader("ltc",{{GL_VERTEX_SHADER, m_resource_path + "./shader/ltc2.vs.glsl"}, {GL_FRAGMENT_SHADER, m_resource_path + "./shader/ltc2.fs.glsl"}});
-  initializeShader("arealight",{{GL_VERTEX_SHADER, m_resource_path + "./shader/arealight.vs.glsl"}, {GL_FRAGMENT_SHADER, m_resource_path + "./shader/arealight.fs.glsl"}});
-  initializeShader("blit",{{GL_VERTEX_SHADER, m_resource_path + "./shader/blit_ltc.vs.glsl"}, {GL_FRAGMENT_SHADER, m_resource_path + "./shader/blit_ltc.fs.glsl"}});
-
   initializeShader("ltc_gbuffer",
       {{GL_VERTEX_SHADER, m_resource_path + "./shader/ltc_gbuffer.vs.glsl"},
       {GL_FRAGMENT_SHADER, m_resource_path + "./shader/ltc_gbuffer.fs.glsl"}});
+
+  initializeShader("arealight",
+      {{GL_VERTEX_SHADER, m_resource_path + "./shader/arealight.vs.glsl"},
+      {GL_FRAGMENT_SHADER, m_resource_path + "./shader/arealight.fs.glsl"}});
 
   initializeShader("ltc_quad",
       {{GL_VERTEX_SHADER, m_resource_path + "./shader/ltc_quad.vs.glsl"},

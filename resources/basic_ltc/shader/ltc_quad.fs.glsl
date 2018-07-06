@@ -13,23 +13,28 @@ uniform sampler2D normal;
 uniform sampler2D position;
 uniform sampler2D depth;
 
-uniform float intensity;
-uniform vec3  dcolor;
-uniform vec3  scolor;
-
 uniform float roughness;
 
 uniform bool clipless;
-
-uniform vec3 p1;
-uniform vec3 p2;
-uniform vec3 p3;
-uniform vec3 p4;
 
 uniform vec3 camera_position;
 
 uniform sampler2D ltc_1;
 uniform sampler2D ltc_2;
+
+struct AreaLight {
+  float intensity;
+  vec3 dcolor;
+  vec3 scolor;
+
+  vec3 p1;
+  vec3 p2;
+  vec3 p3;
+  vec3 p4;
+};
+const int MAX_LIGHTS = 10;
+uniform int num_lights;
+uniform AreaLight area_lights[MAX_LIGHTS];
 
 const float LUT_SIZE  = 64.0;
 const float LUT_SCALE = (LUT_SIZE - 1.0)/LUT_SIZE;
@@ -286,18 +291,6 @@ vec3 ToLinear(vec3 v) { return PowVec3(v, gamma); }
 
 void main()
 {
-    vec3 points[4];
-    points[0] = p1;
-    points[1] = p2;
-    points[2] = p3;
-    points[3] = p4;
-
-    vec3 lcol = vec3(intensity);
-    vec3 dcol = ToLinear(dcolor);
-    vec3 scol = ToLinear(scolor);
-
-    vec3 col = vec3(0);
-
     vec3 w_position = texture2D(position, tc).rgb;
 		vec3 pos = w_position;
 
@@ -318,13 +311,26 @@ void main()
 				vec3(t1.z, 0, t1.w)
 				);
 
-		vec3 spec = LTC_Evaluate(N, V, pos, Minv, points);
-		// BRDF shadowing and Fresnel
-		spec *= scol*t2.x + (1.0 - scol)*t2.y;
+    vec3 col = vec3(0);
+    for (int i = 0; i < num_lights; ++i) {
+      vec3 points[4];
+      points[0] = area_lights[i].p1;
+      points[1] = area_lights[i].p2;
+      points[2] = area_lights[i].p3;
+      points[3] = area_lights[i].p4;
 
-		vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points);
+      vec3 lcol = vec3(area_lights[i].intensity);
+      vec3 dcol = ToLinear(area_lights[i].dcolor);
+      vec3 scol = ToLinear(area_lights[i].scolor);
 
-		col = lcol*(spec + dcol*diff);
+      vec3 spec = LTC_Evaluate(N, V, pos, Minv, points);
+      // BRDF shadowing and Fresnel
+      spec *= scol*t2.x + (1.0 - scol)*t2.y;
+
+      vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points);
+
+      col += lcol*(spec + dcol*diff);
+    }
 
     FragColor = vec4(col, 1.0);
     gl_FragDepth = texture2D(depth, tc).r;
