@@ -5,6 +5,14 @@
 // bind roughness   {label:"Roughness", default:0.25, min:0.01, max:1, step:0.001}
 // bind clipless    {label:"Clipless Approximation", default:false}
 
+layout(location = 0) out vec4 FragColor;
+
+// gbuffer stuff
+in vec2 tc;
+uniform sampler2D normal;
+uniform sampler2D position;
+uniform sampler2D depth;
+
 uniform float intensity;
 uniform vec3  dcolor;
 uniform vec3  scolor;
@@ -22,9 +30,6 @@ uniform vec3 camera_position;
 
 uniform sampler2D ltc_1;
 uniform sampler2D ltc_2;
-
-in vec3 w_normal;
-in vec3 w_position;
 
 const float LUT_SIZE  = 64.0;
 const float LUT_SCALE = (LUT_SIZE - 1.0)/LUT_SIZE;
@@ -279,8 +284,6 @@ vec3 PowVec3(vec3 v, float p)
 const float gamma = 2.2;
 vec3 ToLinear(vec3 v) { return PowVec3(v, gamma); }
 
-out vec4 FragColor;
-
 void main()
 {
     vec3 points[4];
@@ -295,9 +298,11 @@ void main()
 
     vec3 col = vec3(0);
 
+    vec3 w_position = texture2D(position, tc).rgb;
 		vec3 pos = w_position;
 
-		vec3 N = normalize(w_normal);
+    vec3 w_normal = texture2D(normal, tc).rgb;
+		vec3 N = w_normal;
 		vec3 V = normalize(camera_position - w_position);
 
 		float ndotv = saturate(dot(N, V));
@@ -322,4 +327,5 @@ void main()
 		col = lcol*(spec + dcol*diff);
 
     FragColor = vec4(col, 1.0);
+    gl_FragDepth = texture2D(depth, tc).r;
 }

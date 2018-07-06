@@ -27,12 +27,10 @@ class BasicLTC : public Application {
   void initializeObjects();
 
   // own methods
+  void render_gbuffer();
+  void render_ltc_quad();
   void renderScene();
   void resize() override;
-
-  // TODO maybe this is bs
-  unsigned int render_clear_count;
-  unsigned int render_clear_modulo;
 
   // render objects
   simpleQuad  quad;
@@ -41,9 +39,16 @@ class BasicLTC : public Application {
   solidSphere sphere;
   simplePoint point;
 
-  // Textures
+  // LTC Textures
   GLuint ltc_texture_1;
   GLuint ltc_texture_2;
+
+  // Deferred Shading stuff
+  Fbo gbuffer;
+  //Tex tex_diffuse; // don't need this for now
+  Tex tex_normal;
+  Tex tex_position;
+  Tex tex_depth;
 
   // ACES Framebuffer stuff
   GLuint rtt_framebuffer;
