@@ -106,9 +106,33 @@ void BasicLTC::render_ltc_quad() {
    glm::vec4(12.0f, 0.0f, 12.0f, 1.0f),
    glm::vec4(12.0f, 0.0f, -12.0f, 1.0f)
   };
+  std::vector<glm::vec3> colors = {
+    glm::vec3(1.0,0.0,0.0),
+    glm::vec3(0.0,1.0,0.0),
+    glm::vec3(0.0,0.0,1.0),
+    glm::vec3(1.0,1.0,0.0)
+  };
+
+  glUseProgram(shader("arealight"));
+
+  // setup view and proj matrix
+  uniform("arealight", "viewMatrix", viewMatrix());
+  uniform("arealight", "projMatrix", projectionMatrix());
+
+  // draw the area light
+  uniform("arealight", "modelMatrix", modelMatrix);
+  uniform("arealight", "u_color", glm::vec3(1.0));
+  plane.draw();
+
+  // draw the points passed to the ltc shader
+  glPointSize(10.0f);
   for (int i = 0; i < 4; ++i) {
     points[i] = modelMatrix * points[i];
     points[i] = points[i] / points[i].a;
+    glm::mat4 pModel = glm::translate(glm::mat4(1.0f), glm::vec3(points[i]));
+    uniform("arealight", "modelMatrix", pModel);
+    uniform("arealight", "u_color", colors[i]);
+    point.draw();
   }
 
   // draw the ground
