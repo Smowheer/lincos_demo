@@ -119,9 +119,12 @@ void BasicLTC::render_ltc_quad() {
   
   // first draw the lights
   for (unsigned int i = 0; i < area_lights.size(); ++i) {
+    AreaLight l = area_lights[i];
     glm::mat4 modelMatrix = glm::mat4(1.0f);
-    modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0,3.0,-5.0));
-    modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0,0.0,0.0));
+    modelMatrix = glm::translate(modelMatrix, l.light_position);
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(l.rotation_y), glm::vec3(0.0,1.0,0.0));
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(l.rotation_x), glm::vec3(1.0,0.0,0.0));
+    modelMatrix = glm::scale(modelMatrix, glm::vec3(l.scale_x, 1.0, l.scale_y));
     modelMatrix = glm::scale(modelMatrix, glm::vec3(0.2f));
     glUseProgram(shader("arealight"));
     {
@@ -145,7 +148,6 @@ void BasicLTC::render_ltc_quad() {
 
     // draw with ltc
     glUseProgram(shader("ltc_quad"));
-    AreaLight l = area_lights[i];
     std::stringstream ss;
     ss << "area_lights[" << i << "].";
     uniform("ltc_quad", ss.str() + "intensity", l.light_intensity);
@@ -193,18 +195,35 @@ BasicLTC::BasicLTC(std::string const& resource_path)
  ,area_lights{
    {
      AreaLight(
-         glm::vec3(0.0),
-         0.0f,
-         0.0f,
-         1.0f,
-         1.0f,
-         15.0f,
-         glm::vec3(0.0),
-         glm::vec3(1.0)),
-     AreaLight()
+         glm::vec3(-5.0, 5.0, 0.0),
+         -90.0f,
+         90.0f,
+         0.8f,
+         0.8f,
+         5.0f,
+         glm::vec3(1.0, 0.2, 1.0),
+         glm::vec3(1.0, 0.2, 1.0)),
+     AreaLight(
+         glm::vec3(5.0, 5.0, 0.0),
+         -90.0f,
+         -90.0f,
+         0.8f,
+         0.8f,
+         5.0f,
+         glm::vec3(1.0, 1.0, 0.0),
+         glm::vec3(1.0, 1.0, 0.0)),
+     //AreaLight(
+     //    glm::vec3(5.0, 5.0, 0.0),
+     //    -90.0f,
+     //    -90.0f,
+     //    0.8f,
+     //    0.8f,
+     //    5.0f,
+     //    glm::vec3(1.0, 1.0, 0.0),
+     //    glm::vec3(1.0, 1.0, 0.0))
    }
  }
- ,roughness{0.55f}
+ ,roughness{0.25f}
  ,clipless{}
 {
   initializeGUI();

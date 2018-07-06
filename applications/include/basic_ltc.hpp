@@ -74,7 +74,7 @@ class BasicLTC : public Application {
           spec_color{glm::vec3(1.0)} {
     }
     AreaLight(
-        glm::vec3 light_position,
+        glm::fvec3 light_position,
         float rotation_x,
         float rotation_y,
         float scale_x,
