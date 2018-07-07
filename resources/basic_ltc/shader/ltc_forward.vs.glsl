@@ -14,7 +14,5 @@ void main() {
 
   mat3 normalMatrix = transpose(inverse(mat3(modelMatrix)));
   w_normal = normalize(normalMatrix * vNormal);
-  w_position = (modelMatrix * vec4(vPosition, 1.0)).xyz;
+  w_position = (modelMatrix * vec4(vPosition, 1)).xyz;
 }
-
-

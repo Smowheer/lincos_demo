@@ -27,8 +27,15 @@ class BasicLTC : public Application {
   void initializeObjects();
 
   // own methods
+  // forward version
+  void render_forward();
+  void render_light_forward(unsigned light_idx);
+  void render_ltc_forward(unsigned light_idx);
+
+  // deferred version
+  void render_deferred();
   void render_gbuffer();
-  void render_ltc_quad();
+  void render_ltc_deferred();
   void resize() override;
 
   // render objects
@@ -41,6 +48,8 @@ class BasicLTC : public Application {
   GLuint ltc_texture_1;
   GLuint ltc_texture_2;
 
+
+  bool bool_deferred;
   // Deferred Shading stuff
   Fbo gbuffer;
   //Tex tex_diffuse; // don't need this for now
@@ -64,7 +73,7 @@ class BasicLTC : public Application {
     glm::vec3 diff_color;
     glm::vec3 spec_color;
     AreaLight()
-        : light_position{glm::vec3(0.0)},
+        : light_position{glm::vec3(0.0, 10.0, 0.0)},
           rotation_x{0.0},
           rotation_y{0.0},
           scale_x{1.0},

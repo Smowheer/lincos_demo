@@ -23,6 +23,25 @@
 #include "shader_loader.hpp"
 
 void BasicLTC::render() {
+  if (bool_deferred) {
+    render_deferred();
+  } else {
+    render_forward();
+  }
+  // draw final with ACES TODO understand ACES!
+  glClearColor(0.1f, 0.1f, 0.1f, 1.0f); 
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glUseProgram(shader("ltc_blit"));
+  uniform("ltc_blit", "resolution", glm::vec2(resolution()));
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, rtt_texture);
+  uniform("ltc_blit", "tex", 0);
+  quad.draw();
+  glUseProgram(0);
+}
+
+// DEFERRED RENDERING
+void BasicLTC::render_deferred() {
   // draw the geometry to gbuffer
   gbuffer.bind();
   {
@@ -40,20 +59,9 @@ void BasicLTC::render() {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f); 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
-    render_ltc_quad();
+    render_ltc_deferred();
   }
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-  // draw final with ACES TODO understand ACES!
-  glClearColor(0.1f, 0.1f, 0.1f, 1.0f); 
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glUseProgram(shader("ltc_blit"));
-  uniform("ltc_blit", "resolution", glm::vec2(resolution()));
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, rtt_texture);
-  uniform("ltc_blit", "tex", 0);
-  quad.draw();
-  glUseProgram(0);
 }
 
 void BasicLTC::render_gbuffer() {
@@ -74,7 +82,7 @@ void BasicLTC::render_gbuffer() {
   glUseProgram(0);
 }
 
-void BasicLTC::render_ltc_quad() {
+void BasicLTC::render_ltc_deferred() {
   // setup global stuff
   std::vector<glm::vec4> points = {
    glm::vec4(-12.0f, 0.0f, -12.0f, 1.0f),
@@ -130,7 +138,7 @@ void BasicLTC::render_ltc_quad() {
     {
       // draw the area light
       uniform("arealight", "modelMatrix", modelMatrix);
-      uniform("arealight", "u_color", glm::vec3(1.0));
+      uniform("arealight", "u_color", l.diff_color);
       plane.draw();
 
       // draw the points passed to the ltc shader
@@ -176,6 +184,153 @@ void BasicLTC::render_ltc_quad() {
     glUseProgram(0);
   }
 }
+// END OF DEFERRED RENDERING
+
+
+// FORWARD RENDERING
+
+void BasicLTC::render_forward() {
+  glBlendFunc(GL_ONE, GL_ONE);
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LEQUAL);
+  // draw the colors to rtt_framebuffer
+  glBindFramebuffer(GL_FRAMEBUFFER, rtt_framebuffer);
+  {
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f); 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // draw the lights themself
+    for (unsigned int i = 0; i < area_lights.size(); ++i) {
+      render_light_forward(i);
+    }
+    // blend all lighting calculations into rtt_texture
+    for (unsigned int i = 0; i < area_lights.size(); ++i) {
+      if (i == 1) {
+        // after first draw blend the rest
+        glEnable(GL_BLEND);
+      }
+      render_ltc_forward(i);
+    }
+  }
+  glDepthFunc(GL_LESS);
+  glDisable(GL_BLEND);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void BasicLTC::render_light_forward(unsigned int light_idx) {
+  AreaLight l = area_lights[light_idx];
+  std::vector<glm::vec4> points = {
+   glm::vec4(-12.0f, 0.0f, -12.0f, 1.0f),
+   glm::vec4(-12.0f, 0.0f, 12.0f, 1.0f),
+   glm::vec4(12.0f, 0.0f, 12.0f, 1.0f),
+   glm::vec4(12.0f, 0.0f, -12.0f, 1.0f)
+  };
+  std::vector<glm::vec3> colors = {
+    glm::vec3(1.0,0.0,0.0),
+    glm::vec3(0.0,1.0,0.0),
+    glm::vec3(0.0,0.0,1.0),
+    glm::vec3(1.0,1.0,0.0)
+  };
+  // setup modelMatrix
+  glm::mat4 modelMatrix = glm::mat4(1.0f);
+  modelMatrix = glm::translate(modelMatrix, l.light_position);
+  modelMatrix = glm::rotate(modelMatrix, glm::radians(l.rotation_y), glm::vec3(0.0,1.0,0.0));
+  modelMatrix = glm::rotate(modelMatrix, glm::radians(l.rotation_x), glm::vec3(1.0,0.0,0.0));
+  modelMatrix = glm::scale(modelMatrix, glm::vec3(l.scale_x, 1.0, l.scale_y));
+  modelMatrix = glm::scale(modelMatrix, glm::vec3(0.2f));
+  // render arealight[light_idx]
+  glUseProgram(shader("arealight"));
+  {
+    // setup view and proj matrix
+    uniform("arealight", "projMatrix", projectionMatrix());
+    uniform("arealight", "viewMatrix", viewMatrix());
+    uniform("arealight", "modelMatrix", modelMatrix);
+    uniform("arealight", "u_color", l.diff_color);
+    plane.draw();
+
+    // transform the points and
+    // draw the points passed to the ltc shader
+    glPointSize(10.0f);
+    for (int j = 0; j < 4; ++j) {
+      points[j] = modelMatrix * points[j];
+      points[j] = points[j] / points[j].a;
+      glm::mat4 pModel = glm::translate(glm::mat4(1.0f), glm::vec3(points[j]));
+      uniform("arealight", "modelMatrix", pModel);
+      uniform("arealight", "u_color", colors[j]);
+      point.draw();
+    }
+  }
+  glUseProgram(0);
+}
+
+void BasicLTC::render_ltc_forward(unsigned int light_idx) {
+  AreaLight l = area_lights[light_idx];
+  // setup stuff
+  std::vector<glm::vec4> points = {
+   glm::vec4(-12.0f, 0.0f, -12.0f, 1.0f),
+   glm::vec4(-12.0f, 0.0f, 12.0f, 1.0f),
+   glm::vec4(12.0f, 0.0f, 12.0f, 1.0f),
+   glm::vec4(12.0f, 0.0f, -12.0f, 1.0f)
+  };
+  std::vector<glm::vec3> colors = {
+    glm::vec3(1.0,0.0,0.0),
+    glm::vec3(0.0,1.0,0.0),
+    glm::vec3(0.0,0.0,1.0),
+    glm::vec3(1.0,1.0,0.0)
+  };
+  // setup modelMatrix
+  glm::mat4 modelMatrix = glm::mat4(1.0f);
+  modelMatrix = glm::translate(modelMatrix, l.light_position);
+  modelMatrix = glm::rotate(modelMatrix, glm::radians(l.rotation_y), glm::vec3(0.0,1.0,0.0));
+  modelMatrix = glm::rotate(modelMatrix, glm::radians(l.rotation_x), glm::vec3(1.0,0.0,0.0));
+  modelMatrix = glm::scale(modelMatrix, glm::vec3(l.scale_x, 1.0, l.scale_y));
+  modelMatrix = glm::scale(modelMatrix, glm::vec3(0.2f));
+
+  for (int j = 0; j < 4; ++j) {
+    points[j] = modelMatrix * points[j];
+    points[j] = points[j] / points[j].a;
+  }
+
+  // render lighting
+  glUseProgram(shader("ltc_forward"));
+  {
+    uniform("ltc_forward", "projMatrix", projectionMatrix());
+    uniform("ltc_forward", "viewMatrix", viewMatrix());
+
+    uniform("ltc_forward", "roughness", roughness);
+
+    uniform("ltc_forward", "clipless", clipless);
+
+    uniform("ltc_forward", "camera_position", m_cam.position);
+
+    uniform("ltc_forward", "ltc_1", 0);
+    uniform("ltc_forward", "ltc_2", 1);
+
+    uniform("ltc_forward", "intensity", l.light_intensity);
+    uniform("ltc_forward", "dcolor", l.diff_color);
+    uniform("ltc_forward", "scolor", l.spec_color);
+
+    uniform("ltc_forward", "p1", glm::vec3(points[0]));
+    uniform("ltc_forward", "p2", glm::vec3(points[1]));
+    uniform("ltc_forward", "p3", glm::vec3(points[2]));
+    uniform("ltc_forward", "p4", glm::vec3(points[3]));
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, ltc_texture_1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, ltc_texture_2);
+
+    // draw objects
+    uniform("ltc_forward", "modelMatrix", glm::mat4(1.0));
+    plane.draw();
+    teaPot.draw();
+    uniform("ltc_forward", "modelMatrix", glm::translate(glm::mat4(1.0), glm::vec3(3,0,3)));
+    teaPot.draw();
+  }
+  glUseProgram(0);
+}
+
+// END OF FORWARD RENDERING
+
 
 BasicLTC::BasicLTC(std::string const& resource_path)
  :Application{resource_path + "basic_ltc/"}
@@ -185,6 +340,7 @@ BasicLTC::BasicLTC(std::string const& resource_path)
  ,point{}
  ,ltc_texture_1{0}
  ,ltc_texture_2{0}
+ ,bool_deferred{false}
  ,gbuffer{}
  ,tex_normal{resolution(), GL_RGBA32F}
  ,tex_position{resolution(), GL_RGBA32F}
@@ -252,23 +408,25 @@ void BasicLTC::initializeGUI() {
     TwAddVarRW(tweakBar, ("diff_color" + ss.str()).c_str(), TW_TYPE_COLOR3F, &(l.diff_color), "label='diff_color'");
     TwAddVarRW(tweakBar, ("spec_color" + ss.str()).c_str(), TW_TYPE_COLOR3F, &(l.spec_color), "label='spec_color'");
   }
-
   TwAddSeparator(tweakBar, "sep123", nullptr);
+  TwAddVarRW(tweakBar, "deferred", TW_TYPE_BOOLCPP, &bool_deferred, "label='render deferred'");
   TwAddVarRW(tweakBar, "roughness", TW_TYPE_FLOAT, &roughness, "label='roughness' min=0.01 step=0.001 max=1");
-
-  TwAddSeparator(tweakBar, "sep124", nullptr);
   TwAddVarRW(tweakBar, "clipless", TW_TYPE_BOOLCPP, &clipless, "label='clipless'");
 }
 
 // load shader programs
 void BasicLTC::initializeShaderPrograms() {
-  initializeShader("ltc_gbuffer",
-      {{GL_VERTEX_SHADER, m_resource_path + "./shader/ltc_gbuffer.vs.glsl"},
-      {GL_FRAGMENT_SHADER, m_resource_path + "./shader/ltc_gbuffer.fs.glsl"}});
-
   initializeShader("arealight",
       {{GL_VERTEX_SHADER, m_resource_path + "./shader/arealight.vs.glsl"},
       {GL_FRAGMENT_SHADER, m_resource_path + "./shader/arealight.fs.glsl"}});
+
+  initializeShader("ltc_forward",
+      {{GL_VERTEX_SHADER, m_resource_path + "./shader/ltc_forward.vs.glsl"},
+      {GL_FRAGMENT_SHADER, m_resource_path + "./shader/ltc_forward.fs.glsl"}});
+
+  initializeShader("ltc_gbuffer",
+      {{GL_VERTEX_SHADER, m_resource_path + "./shader/ltc_gbuffer.vs.glsl"},
+      {GL_FRAGMENT_SHADER, m_resource_path + "./shader/ltc_gbuffer.fs.glsl"}});
 
   initializeShader("ltc_deferred",
       {{GL_VERTEX_SHADER, m_resource_path + "./shader/ltc_deferred.vs.glsl"},

@@ -4,8 +4,6 @@
 // bind scolor      {label:"Specular Color", r:0.23, g:0.23, b:0.23}
 // bind roughness   {label:"Roughness", default:0.25, min:0.01, max:1, step:0.001}
 // bind clipless    {label:"Clipless Approximation", default:false}
-//
-
 
 // IN
 in vec3 w_normal;
@@ -14,14 +12,14 @@ in vec3 w_position;
 // OUT
 out vec4 FragColor;
 
+// UNIFORMS
+uniform float roughness;
+
+uniform bool clipless;
 
 uniform float intensity;
 uniform vec3  dcolor;
 uniform vec3  scolor;
-
-uniform float roughness;
-
-uniform bool clipless;
 
 uniform vec3 p1;
 uniform vec3 p2;
@@ -32,7 +30,6 @@ uniform vec3 camera_position;
 
 uniform sampler2D ltc_1;
 uniform sampler2D ltc_2;
-
 
 const float LUT_SIZE  = 64.0;
 const float LUT_SCALE = (LUT_SIZE - 1.0)/LUT_SIZE;
@@ -296,7 +293,7 @@ void main()
     points[2] = p3;
     points[3] = p4;
 
-    vec3 lcol = vec3(intensity);
+    vec3 lcol = vec3(8*intensity);
     vec3 dcol = ToLinear(dcolor);
     vec3 scol = ToLinear(scolor);
 
