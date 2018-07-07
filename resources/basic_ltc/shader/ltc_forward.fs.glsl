@@ -4,6 +4,16 @@
 // bind scolor      {label:"Specular Color", r:0.23, g:0.23, b:0.23}
 // bind roughness   {label:"Roughness", default:0.25, min:0.01, max:1, step:0.001}
 // bind clipless    {label:"Clipless Approximation", default:false}
+//
+
+
+// IN
+in vec3 w_normal;
+in vec3 w_position;
+
+// OUT
+out vec4 FragColor;
+
 
 uniform float intensity;
 uniform vec3  dcolor;
@@ -23,8 +33,6 @@ uniform vec3 camera_position;
 uniform sampler2D ltc_1;
 uniform sampler2D ltc_2;
 
-in vec3 w_normal;
-in vec3 w_position;
 
 const float LUT_SIZE  = 64.0;
 const float LUT_SCALE = (LUT_SIZE - 1.0)/LUT_SIZE;
@@ -279,7 +287,6 @@ vec3 PowVec3(vec3 v, float p)
 const float gamma = 2.2;
 vec3 ToLinear(vec3 v) { return PowVec3(v, gamma); }
 
-out vec4 FragColor;
 
 void main()
 {

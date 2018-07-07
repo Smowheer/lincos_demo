@@ -98,22 +98,22 @@ void BasicLTC::render_ltc_quad() {
   }
   glUseProgram(0);
 
-  glUseProgram(shader("ltc_quad"));
+  glUseProgram(shader("ltc_deferred"));
   {
-    uniform("ltc_quad", "normal", 0);
-    uniform("ltc_quad", "position", 1);
-    uniform("ltc_quad", "depth", 2);
+    uniform("ltc_deferred", "normal", 0);
+    uniform("ltc_deferred", "position", 1);
+    uniform("ltc_deferred", "depth", 2);
 
-    uniform("ltc_quad", "roughness", roughness);
+    uniform("ltc_deferred", "roughness", roughness);
 
-    uniform("ltc_quad", "clipless", clipless);
+    uniform("ltc_deferred", "clipless", clipless);
 
-    uniform("ltc_quad", "camera_position", m_cam.position);
+    uniform("ltc_deferred", "camera_position", m_cam.position);
 
-    uniform("ltc_quad", "ltc_1", 3);
-    uniform("ltc_quad", "ltc_2", 4);
+    uniform("ltc_deferred", "ltc_1", 3);
+    uniform("ltc_deferred", "ltc_2", 4);
 
-    uniform("ltc_quad", "num_lights", (int)(area_lights.size()));
+    uniform("ltc_deferred", "num_lights", (int)(area_lights.size()));
   }
   glUseProgram(0);
   
@@ -147,17 +147,17 @@ void BasicLTC::render_ltc_quad() {
     glUseProgram(0);
 
     // draw with ltc
-    glUseProgram(shader("ltc_quad"));
+    glUseProgram(shader("ltc_deferred"));
     std::stringstream ss;
     ss << "area_lights[" << i << "].";
-    uniform("ltc_quad", ss.str() + "intensity", l.light_intensity);
-    uniform("ltc_quad", ss.str() + "dcolor", l.diff_color);
-    uniform("ltc_quad", ss.str() + "scolor", l.spec_color);
+    uniform("ltc_deferred", ss.str() + "intensity", l.light_intensity);
+    uniform("ltc_deferred", ss.str() + "dcolor", l.diff_color);
+    uniform("ltc_deferred", ss.str() + "scolor", l.spec_color);
 
-    uniform("ltc_quad", ss.str() + "p1", glm::vec3(current_points[0]));
-    uniform("ltc_quad", ss.str() + "p2", glm::vec3(current_points[1]));
-    uniform("ltc_quad", ss.str() + "p3", glm::vec3(current_points[2]));
-    uniform("ltc_quad", ss.str() + "p4", glm::vec3(current_points[3]));
+    uniform("ltc_deferred", ss.str() + "p1", glm::vec3(current_points[0]));
+    uniform("ltc_deferred", ss.str() + "p2", glm::vec3(current_points[1]));
+    uniform("ltc_deferred", ss.str() + "p3", glm::vec3(current_points[2]));
+    uniform("ltc_deferred", ss.str() + "p4", glm::vec3(current_points[3]));
 
     // bind all textures
     glActiveTexture(GL_TEXTURE0);
@@ -270,9 +270,9 @@ void BasicLTC::initializeShaderPrograms() {
       {{GL_VERTEX_SHADER, m_resource_path + "./shader/arealight.vs.glsl"},
       {GL_FRAGMENT_SHADER, m_resource_path + "./shader/arealight.fs.glsl"}});
 
-  initializeShader("ltc_quad",
-      {{GL_VERTEX_SHADER, m_resource_path + "./shader/ltc_quad.vs.glsl"},
-      {GL_FRAGMENT_SHADER, m_resource_path + "./shader/ltc_quad.fs.glsl"}});
+  initializeShader("ltc_deferred",
+      {{GL_VERTEX_SHADER, m_resource_path + "./shader/ltc_deferred.vs.glsl"},
+      {GL_FRAGMENT_SHADER, m_resource_path + "./shader/ltc_deferred.fs.glsl"}});
 
   initializeShader("ltc_blit",
       {{GL_VERTEX_SHADER, m_resource_path + "./shader/ltc_blit.vs.glsl"},
