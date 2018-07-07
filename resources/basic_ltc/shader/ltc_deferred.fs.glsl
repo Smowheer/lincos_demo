@@ -318,6 +318,6 @@ void main()
       col += lcol*(spec + dcol*diff);
     }
 
-    FragColor = vec4(col, 1.0);
+    FragColor = vec4(col, num_lights);
     gl_FragDepth = texture2D(depth, tc).r;
 }

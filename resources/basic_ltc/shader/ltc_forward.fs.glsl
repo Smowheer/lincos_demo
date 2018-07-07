@@ -293,7 +293,7 @@ void main()
     points[2] = p3;
     points[3] = p4;
 
-    vec3 lcol = vec3(8*intensity);
+    vec3 lcol = vec3(intensity);
     vec3 dcol = ToLinear(dcolor);
     vec3 scol = ToLinear(scolor);
 
