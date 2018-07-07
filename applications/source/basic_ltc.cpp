@@ -212,6 +212,12 @@ BasicLTC::BasicLTC(std::string const& resource_path)
          5.0f,
          glm::vec3(1.0, 1.0, 0.0),
          glm::vec3(1.0, 1.0, 0.0)),
+     AreaLight(),
+     AreaLight(),
+     AreaLight(),
+     AreaLight(),
+     AreaLight(),
+     AreaLight(),
      //AreaLight(
      //    glm::vec3(5.0, 5.0, 0.0),
      //    -90.0f,

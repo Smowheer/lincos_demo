@@ -40,18 +40,6 @@ const float LUT_SIZE  = 64.0;
 const float LUT_SCALE = (LUT_SIZE - 1.0)/LUT_SIZE;
 const float LUT_BIAS  = 0.5/LUT_SIZE;
 
-const float pi = 3.14159265;
-
-vec3 mul(mat3 m, vec3 v)
-{
-    return m * v;
-}
-
-mat3 mul(mat3 m1, mat3 m2)
-{
-    return m1 * m2;
-}
-
 // Linearly Transformed Cosines
 ///////////////////////////////
 
@@ -195,14 +183,14 @@ vec3 LTC_Evaluate(
     T2 = cross(N, T1);
 
     // rotate area light in (T1, T2, N) basis
-    Minv = mul(Minv, transpose(mat3(T1, T2, N)));
+    Minv = Minv * transpose(mat3(T1, T2, N));
 
     // polygon (allocate 5 vertices for clipping)
     vec3 L[5];
-    L[0] = mul(Minv, points[0] - P);
-    L[1] = mul(Minv, points[1] - P);
-    L[2] = mul(Minv, points[2] - P);
-    L[3] = mul(Minv, points[3] - P);
+    L[0] = Minv * (points[0] - P);
+    L[1] = Minv * (points[1] - P);
+    L[2] = Minv * (points[2] - P);
+    L[3] = Minv * (points[3] - P);
 
     // integrate
     float sum = 0.0;
@@ -291,12 +279,10 @@ vec3 ToLinear(vec3 v) { return PowVec3(v, gamma); }
 
 void main()
 {
-    vec3 w_position = texture2D(position, tc).rgb;
-		vec3 pos = w_position;
+    vec3 pos = texture2D(position, tc).rgb;
 
-    vec3 w_normal = texture2D(normal, tc).rgb;
-		vec3 N = w_normal;
-		vec3 V = normalize(camera_position - w_position);
+    vec3 N = texture2D(normal, tc).rgb;
+		vec3 V = normalize(camera_position - pos);
 
 		float ndotv = saturate(dot(N, V));
 		vec2 uv = vec2(roughness, sqrt(1.0 - ndotv));
