@@ -43,7 +43,9 @@ protected:
 	simpleModel();
 	void upload();
 	std::vector<uint32_t> indices;
+public:
 	std::vector<glm::vec3> vertices;
+protected:
 	std::vector<glm::vec3> normals;
 	uint32_t vbo[3];
 };
@@ -52,6 +54,12 @@ class groundPlane : public simpleModel
 {
 public:
 	groundPlane(const float height, const float width);
+};
+
+class shurikenModel : public simpleModel
+{
+public:
+  shurikenModel();
 };
 
 class solidTorus : public simpleModel 

@@ -52,7 +52,7 @@ class BasicLTC : public Application {
   GLuint ltc_texture_2;
 
 
-  bool bool_deferred;
+  //bool bool_deferred;
   // Deferred Shading stuff
   Fbo gbuffer;
   //Tex tex_diffuse; // don't need this for now

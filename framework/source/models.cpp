@@ -224,6 +224,29 @@ groundPlane::groundPlane(const float height, const float width)
 	upload();
 }
 
+shurikenModel::shurikenModel() : simpleModel{}
+{
+  vertices = std::vector<glm::vec3>(8);
+	vertices = { 
+    glm::vec3(-1.0, 0.0, -1.0),
+    glm::vec3(-3.0, 0.0,  0.0), 
+    glm::vec3(-1.0, 0.0,  1.0),
+    glm::vec3(0.0 , 0.0,  3.0), 
+    glm::vec3( 1.0, 0.0,  1.0),
+    glm::vec3(3.0 , 0.0,  0.0), 
+    glm::vec3( 1.0, 0.0, -1.0),
+    glm::vec3(0.0 , 0.0, -3.0) 
+  };
+
+  normals = std::vector<glm::vec3>(8, glm::vec3(0.0, 1.0, 0.0));
+
+  indices = std::vector<unsigned int>(18);
+  indices = {0,1,2,  2,3,4,  4,5,6,  6,7,0,  0,2,6,  2,4,6};
+
+  upload();
+}
+
+
 solidTorus::solidTorus(const float r, const float R, const float sides, const float rings)
   :simpleModel{}
  {

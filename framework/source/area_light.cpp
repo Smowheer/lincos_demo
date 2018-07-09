@@ -1,7 +1,8 @@
 #include "area_light.hpp"
 
 AreaLight::AreaLight()
-  : light_position{glm::vec3(0.0, 10.0, 0.0)},
+  : area_light_model{new groundPlane(0.0, 12.0)},
+  light_position{glm::vec3(0.0, 10.0, 0.0)},
   rotation_x{0.0},
   rotation_y{0.0},
   scale_x{1.0},
@@ -11,6 +12,7 @@ AreaLight::AreaLight()
   spec_color{glm::vec3(1.0)} {}
 
 AreaLight::AreaLight(
+    simpleModel* area_light_model,
     glm::fvec3 light_position,
     float rotation_x,
     float rotation_y,
@@ -19,7 +21,8 @@ AreaLight::AreaLight(
     float light_intensity,
     glm::vec3 diff_color,
     glm::vec3 spec_color) 
-  : light_position{light_position},
+  : area_light_model{area_light_model},
+  light_position{light_position},
   rotation_x{rotation_x},
   rotation_y{rotation_y},
   scale_x{scale_x},
