@@ -37,6 +37,8 @@ class BasicLTC : public Application {
   void render_deferred();
   void render_gbuffer();
   void render_ltc_deferred();
+
+  void draw_basic_scene(const std::string& current_shader);
   void resize() override;
 
   // render objects

@@ -69,15 +69,10 @@ void BasicLTC::render_gbuffer() {
   glUseProgram(shader("ltc_gbuffer"));
 
   // vertex shader uniforms
-  uniform("ltc_gbuffer", "modelMatrix", glm::mat4(1.0));
   uniform("ltc_gbuffer", "viewMatrix", viewMatrix());
   uniform("ltc_gbuffer", "projMatrix", projectionMatrix());
 
-  // draw ground
-  plane.draw();
-
-  // draw the pot ( uniforms stay the same :) )
-  teaPot.draw();
+  draw_basic_scene("ltc_gbuffer");
 
   glUseProgram(0);
 }
@@ -322,16 +317,23 @@ void BasicLTC::render_ltc_forward(unsigned int light_idx) {
     glBindTexture(GL_TEXTURE_2D, ltc_texture_2);
 
     // draw objects
-    uniform("ltc_forward", "modelMatrix", glm::mat4(1.0));
-    plane.draw();
-    teaPot.draw();
-    uniform("ltc_forward", "modelMatrix", glm::translate(glm::mat4(1.0), glm::vec3(3,0,3)));
-    teaPot.draw();
+
+    draw_basic_scene("ltc_forward");
   }
   glUseProgram(0);
 }
 
 // END OF FORWARD RENDERING
+
+// SCENE DRAW
+
+void BasicLTC::draw_basic_scene(const std::string& current_shader) {
+    uniform(current_shader, "modelMatrix", glm::mat4(1.0));
+    plane.draw();
+    teaPot.draw();
+    uniform(current_shader, "modelMatrix", glm::translate(glm::mat4(1.0), glm::vec3(3,0,3)));
+    teaPot.draw();
+}
 
 
 BasicLTC::BasicLTC(std::string const& resource_path)
