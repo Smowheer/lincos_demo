@@ -62,6 +62,36 @@ public:
   shurikenModel();
 };
 
+class GModel : public simpleModel
+{
+  public:
+    GModel();
+};
+
+class rModel : public simpleModel
+{
+  public:
+    rModel();
+};
+
+class aModel : public simpleModel
+{
+  public:
+    aModel();
+};
+
+class HModel : public simpleModel
+{
+  public:
+    HModel();
+};
+
+class SModel : public simpleModel
+{
+  public:
+    SModel();
+};
+
 class solidTorus : public simpleModel 
 {
 public:

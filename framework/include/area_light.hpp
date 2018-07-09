@@ -32,7 +32,6 @@ class AreaLight{
       float light_intensity,
       glm::vec3 diff_color,
       glm::vec3 spec_color);
-
 };
 
 #endif

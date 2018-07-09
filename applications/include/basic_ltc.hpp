@@ -55,6 +55,7 @@ class BasicLTC : public Application {
   std::vector<AreaLight> area_lights;
 
   float roughness;
+  bool flip_lights;
 };
 
 #endif

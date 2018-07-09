@@ -20,9 +20,12 @@
 #include <iostream>
 #include <sstream>
 
+#include <deque>
+
 #include "shader_loader.hpp"
 
 void BasicLTC::render() {
+  //std::cout << m_cam.viewDir.x << m_cam.viewDir.y << m_cam.viewDir.z << std::endl;
 
   render_forward();
 
@@ -107,12 +110,20 @@ void BasicLTC::render_light_forward(unsigned int light_idx) {
 
 void BasicLTC::render_ltc_forward(unsigned int light_idx) {
   AreaLight l = area_lights[light_idx];
-  std::vector<glm::vec4> points;
-  int n_points = 0;
-  for (auto v3 : l.area_light_model->vertices) {
-    points.push_back(glm::vec4(v3.x, v3.y, v3.z, 1.0));
-    n_points++;
+  std::deque<glm::vec4> points;
+  int n_points = (int)(l.area_light_model->vertices.size());
+  for (int i = 1; i < n_points; ++i) {
+    glm::vec3 v3 = l.area_light_model->vertices[i];
+    if (flip_lights) {
+      points.push_front(glm::vec4(v3.x, v3.y, v3.z, 1.0));
+    } else {
+      points.push_back(glm::vec4(v3.x, v3.y, v3.z, 1.0));
+    }
   }
+  points.push_front(glm::vec4(l.area_light_model->vertices[0], 1.0));
+
+
+
   // setup modelMatrix
   glm::mat4 modelMatrix = glm::mat4(1.0f);
   modelMatrix = glm::translate(modelMatrix, l.light_position);
@@ -167,6 +178,7 @@ void BasicLTC::render_ltc_forward(unsigned int light_idx) {
 void BasicLTC::draw_basic_scene(const std::string& current_shader) {
     uniform(current_shader, "modelMatrix", glm::mat4(1.0));
     plane.draw();
+    uniform(current_shader, "modelMatrix", glm::translate(glm::mat4(1.0), glm::vec3(3,0,0)));
     teaPot.draw();
     uniform(current_shader, "modelMatrix", glm::translate(glm::mat4(1.0), glm::vec3(3,0,3)));
     teaPot.draw();
@@ -177,7 +189,7 @@ BasicLTC::BasicLTC(std::string const& resource_path)
  :Application{resource_path + "basic_ltc/"}
  ,quad{}
  ,teaPot{m_resource_path + "../shared/data/teapot.obj"}
- ,plane{0.0f, 12.0f}
+ ,plane{0.0f, 50.0f}
  ,point{}
  ,ltc_texture_1{0}
  ,ltc_texture_2{0}
@@ -186,29 +198,70 @@ BasicLTC::BasicLTC(std::string const& resource_path)
  ,rtt_texture{0}
  ,area_lights{
    {
+     //AreaLight(
+     //    new groundPlane(0.0, 2.4f),
+     //    glm::vec3(-5.0, 5.0, 0.0),
+     //    270.0f,
+     //    90.0f,
+     //    0.8f,
+     //    0.8f,
+     //    5.0f,
+     //    glm::vec3(1.0, 0.2, 1.0),
+     //    glm::vec3(1.0, 0.2, 1.0)),
      AreaLight(
-         new groundPlane(0.0, 2.4f),
-         glm::vec3(-5.0, 5.0, 0.0),
-         -90.0f,
-         90.0f,
-         0.8f,
-         0.8f,
-         5.0f,
-         glm::vec3(1.0, 0.2, 1.0),
-         glm::vec3(1.0, 0.2, 1.0)),
+         new GModel(),
+         glm::vec3(4.5, 5.0,-3.0),
+         180.0f,
+         270.0f,
+         0.5f,
+         0.5f,
+         15.0f,
+         glm::vec3(0.0, 0.0, 1.0),
+         glm::vec3(0.0, 0.0, 1.0)),
      AreaLight(
-         new groundPlane(0.0, 2.4f),
-         glm::vec3(5.0, 5.0, 0.0),
-         -90.0f,
-         -90.0f,
-         0.8f,
-         0.8f,
-         5.0f,
+         new rModel(),
+         glm::vec3(4.0, 5.0,-0.5),
+         180.0f,
+         270.0f,
+         0.5f,
+         0.5f,
+         15.0f,
+         glm::vec3(0.0, 1.0, 0.0),
+         glm::vec3(0.0, 1.0, 0.0)),
+     AreaLight(
+         new aModel(),
+         glm::vec3(4.0, 5.0, 1.5),
+         180.0f,
+         270.0f,
+         0.5f,
+         0.5f,
+         15.0f,
          glm::vec3(1.0, 1.0, 0.0),
          glm::vec3(1.0, 1.0, 0.0)),
+     AreaLight(
+         new HModel(),
+         glm::vec3(4.5, 5.0, 4.0),
+         180.0f,
+         270.0f,
+         0.5f,
+         0.5f,
+         15.0f,
+         glm::vec3(1.0, 0.5, 0.0),
+         glm::vec3(1.0, 0.5, 0.0)),
+     AreaLight(
+         new SModel(),
+         glm::vec3(4.5, 5.0, 6.5),
+         180.0f,
+         270.0f,
+         0.5f,
+         0.5f,
+         15.0f,
+         glm::vec3(1.0, 0.0, 0.0),
+         glm::vec3(1.0, 0.0, 0.0)),
    }
  }
- ,roughness{0.25f}
+ ,roughness{0.85f}
+ ,flip_lights{false}
 {
   initializeGUI();
   initializeObjects();
@@ -216,20 +269,19 @@ BasicLTC::BasicLTC(std::string const& resource_path)
 }
 
 void BasicLTC::initializeGUI() {
-  //TwAddVarRW(tweakBar, "deferred", TW_TYPE_BOOLCPP, &bool_deferred, "label='render deferred'");
-  TwAddVarRW(tweakBar, "roughness", TW_TYPE_FLOAT, &roughness, "label='roughness' min=0.01 step=0.001 max=1");
-  //TwAddVarRW(tweakBar, "clipless", TW_TYPE_BOOLCPP, &clipless, "label='clipless'");
+  TwAddVarRW(tweakBar, "flip_lights", TW_TYPE_BOOLCPP, &flip_lights, "label='flip_lights'");
+  TwAddVarRW(tweakBar, "roughness", TW_TYPE_FLOAT, &roughness, "label='roughness' min=0.05 step=0.001 max=1");
   for (unsigned int i = 0; i < area_lights.size(); ++i) {
     AreaLight& l = area_lights[i]; // reference!
     std::stringstream ss;
     ss << i;
     TwAddSeparator(tweakBar, ("sep" + ss.str()).c_str(), nullptr);
     TwAddVarRW(tweakBar, ("light_position" + ss.str()).c_str(), TW_TYPE_DIR3F, &(l.light_position), "label='light_position'");
-    TwAddVarRW(tweakBar, ("rotation_x" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.rotation_x), "label='rotation_x' min=0 step=1.0 max=360");
-    TwAddVarRW(tweakBar, ("rotation_y" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.rotation_y), "label='rotation_y' min=0 step=1.0 max=360");
-    TwAddVarRW(tweakBar, ("scale_x" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.scale_x), "label='scale_x' min=0.1 step=0.1 max=10");
-    TwAddVarRW(tweakBar, ("scale_y" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.scale_y), "label='scale_y' min=0.1 step=0.1 max=10");
-    TwAddVarRW(tweakBar, ("light_intensity" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.light_intensity), "label='light_intensity' min=0.1 step=0.1 max=30");
+    TwAddVarRW(tweakBar, ("rotation_x" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.rotation_x), "label='rotation_x' min=0 step=0.5 max=360");
+    TwAddVarRW(tweakBar, ("rotation_y" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.rotation_y), "label='rotation_y' min=0 step=0.5 max=360");
+    TwAddVarRW(tweakBar, ("scale_x" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.scale_x), "label='scale_x' min=0.001 step=0.001 max=5");
+    TwAddVarRW(tweakBar, ("scale_y" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.scale_y), "label='scale_y' min=0.001 step=0.001 max=5");
+    TwAddVarRW(tweakBar, ("light_intensity" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.light_intensity), "label='light_intensity' min=0.1 step=0.01 max=50");
     TwAddVarRW(tweakBar, ("diff_color" + ss.str()).c_str(), TW_TYPE_COLOR3F, &(l.diff_color), "label='diff_color'");
     TwAddVarRW(tweakBar, ("spec_color" + ss.str()).c_str(), TW_TYPE_COLOR3F, &(l.spec_color), "label='spec_color'");
   }

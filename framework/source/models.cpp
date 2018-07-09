@@ -246,6 +246,180 @@ shurikenModel::shurikenModel() : simpleModel{}
   upload();
 }
 
+GModel::GModel() : simpleModel{}
+{
+  vertices = std::vector<glm::vec3>(12);
+  vertices = {
+    glm::vec3( 0.0, 0.0, 0.0),
+    glm::vec3( 0.0, 0.0, 5.0),
+    glm::vec3( 5.0, 0.0, 5.0),
+    glm::vec3( 5.0, 0.0, 4.0),
+    glm::vec3( 1.0, 0.0, 4.0),
+    glm::vec3( 1.0, 0.0, 1.0),
+    glm::vec3( 4.0, 0.0, 1.0),
+    glm::vec3( 4.0, 0.0, 2.0),
+    glm::vec3( 2.0, 0.0, 2.0),
+    glm::vec3( 2.0, 0.0, 3.0),
+    glm::vec3( 5.0, 0.0, 3.0),
+    glm::vec3( 5.0, 0.0, 0.0)
+  };
+  for (unsigned int i = 0; i < vertices.size(); ++i) {
+    vertices[i] = vertices[i] - glm::vec3(2.5, 0.0, 2.5);
+  }
+  normals = std::vector<glm::vec3>(12, glm::vec3(0.0, 1.0, 0.0));
+
+  indices = std::vector<unsigned int>(30);
+  indices = {
+    0,1,5,
+    5,1,4,
+    4,1,2,
+    4,2,3,
+    0,5,11,
+    5,6,11,
+    11,6,10,
+    6,7,10,
+    7,8,10,
+    8,9,10
+  };
+  upload();
+}
+
+rModel::rModel() : simpleModel{}
+{
+  vertices = std::vector<glm::vec3>(6);
+  vertices = {
+    glm::vec3( 0.0, 0.0, 0.0),
+    glm::vec3( 0.0, 0.0, 3.0),
+    glm::vec3( 3.0, 0.0, 3.0),
+    glm::vec3( 3.0, 0.0, 2.0),
+    glm::vec3( 1.0, 0.0, 2.0),
+    glm::vec3( 1.0, 0.0, 0.0)
+  };
+  for (unsigned int i = 0; i < vertices.size(); ++i) {
+    vertices[i] = vertices[i] - glm::vec3(1.5, 0.0, 1.5);
+  }
+  normals = std::vector<glm::vec3>(6, glm::vec3(0.0, 1.0, 0.0));
+
+  indices = std::vector<unsigned int>(12);
+  indices = {
+    0,1,4,
+    4,1,2,
+    4,2,3,
+    0,4,5
+  };
+  upload();
+}
+
+// NOTE: this model sucks
+aModel::aModel() : simpleModel{}
+{
+  vertices = std::vector<glm::vec3>(10);
+  vertices = {
+    glm::vec3( 0.0, 0.0, 0.0),
+    glm::vec3( 0.0, 0.0, 3.0),
+    glm::vec3( 2.0, 0.0, 3.0),
+    glm::vec3( 2.0, 0.0, 2.0),
+    glm::vec3( 1.0, 0.0, 2.0),
+    glm::vec3( 1.0, 0.0, 1.0),
+    glm::vec3( 2.0, 0.0, 1.0),
+    glm::vec3( 2.0, 0.0, 3.3),
+    glm::vec3( 3.0, 0.0, 3.3),
+    glm::vec3( 3.0, 0.0, 0.0),
+  };
+  for (unsigned int i = 0; i < vertices.size(); ++i) {
+    vertices[i] = vertices[i] - glm::vec3(1.5, 0.0, 1.5);
+  }
+  normals = std::vector<glm::vec3>(10, glm::vec3(0.0, 1.0, 0.0));
+
+  indices = std::vector<unsigned int>(30);
+  indices = {
+    0,1,5,
+    5,1,4,
+    4,1,2,
+    4,2,3,
+    0,5,9,
+    9,5,6,
+    9,6,8,
+    6,3,8,
+    3,2,8,
+    2,7,8
+  };
+  upload();
+}
+
+HModel::HModel() : simpleModel{}
+{
+  vertices = std::vector<glm::vec3>(12);
+  vertices = {
+    glm::vec3( 0.0, 0.0, 0.0),
+    glm::vec3( 0.0, 0.0, 5.0),
+    glm::vec3( 1.0, 0.0, 5.0),
+    glm::vec3( 1.0, 0.0, 3.0),
+    glm::vec3( 3.0, 0.0, 3.0),
+    glm::vec3( 3.0, 0.0, 5.0),
+    glm::vec3( 4.0, 0.0, 5.0),
+    glm::vec3( 4.0, 0.0, 0.0),
+    glm::vec3( 3.0, 0.0, 0.0),
+    glm::vec3( 3.0, 0.0, 2.0),
+    glm::vec3( 1.0, 0.0, 2.0),
+    glm::vec3( 1.0, 0.0, 0.0)
+  };
+  for (unsigned int i = 0; i < vertices.size(); ++i) {
+    vertices[i] = vertices[i] - glm::vec3(2.0, 0.0, 2.5);
+  }
+  normals = std::vector<glm::vec3>(12, glm::vec3(0.0, 1.0, 0.0));
+
+  indices = std::vector<unsigned int>(18);
+  indices = {
+    0,1,2,
+    0,2,11,
+    10,3,4,
+    10,4,9,
+    8,5,6,
+    8,6,7
+  };
+  upload();
+}
+
+SModel::SModel() : simpleModel{}
+{
+  vertices = std::vector<glm::vec3>(12);
+  vertices = {
+    glm::vec3( 0.0, 0.0, 0.0),
+    glm::vec3( 0.0, 0.0, 1.0),
+    glm::vec3( 3.0, 0.0, 1.0),
+    glm::vec3( 3.0, 0.0, 2.0),
+    glm::vec3( 0.0, 0.0, 2.0),
+    glm::vec3( 0.0, 0.0, 5.0),
+    glm::vec3( 4.0, 0.0, 5.0),
+    glm::vec3( 4.0, 0.0, 4.0),
+    glm::vec3( 1.0, 0.0, 4.0),
+    glm::vec3( 1.0, 0.0, 3.0),
+    glm::vec3( 4.0, 0.0, 3.0),
+    glm::vec3( 4.0, 0.0, 0.0)
+  };
+  for (unsigned int i = 0; i < vertices.size(); ++i) {
+    vertices[i] = vertices[i] - glm::vec3(2.0, 0.0, 2.5);
+  }
+  normals = std::vector<glm::vec3>(12, glm::vec3(0.0, 1.0, 0.0));
+
+  indices = std::vector<unsigned int>(30);
+  indices = {
+    0,1,2,
+    0,2,11,
+    11,2,10,
+    2,3,10,
+    3,9,10,
+    3,4,9,
+    4,5,9,
+    9,5,8,
+    8,5,6,
+    8,6,7
+  };
+  upload();
+}
+
+
 
 solidTorus::solidTorus(const float r, const float R, const float sides, const float rings)
   :simpleModel{}
