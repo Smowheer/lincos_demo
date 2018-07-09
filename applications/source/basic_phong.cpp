@@ -13,6 +13,8 @@
 
 #include <AntTweakBar.h>
 
+#include <sstream>
+
 #include "shader_loader.hpp"
 
 void BasicPhong::render() {
@@ -34,6 +36,12 @@ void BasicPhong::render() {
   uniform("phong", "viewMatrix", viewMatrix());
   uniform("phong", "projMatrix", projectionMatrix());
   uniform("phong", "pointLightPos", this->pointLightPos);
+
+  for (int i = 0; i < 5; ++i) {
+    std::stringstream ss;
+    ss << "colors[" << i << "]";
+    uniform("phong", ss.str().c_str(), glm::vec3(1.0/10.0, 1.0/5.0, 1.0/20.0));
+  }
 
   uniform("phong", "modelMatrix", glm::fmat4(1.0f));
   teaPot.draw();

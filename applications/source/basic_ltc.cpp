@@ -157,15 +157,17 @@ void BasicLTC::render_ltc_deferred() {
     // draw with ltc
     glUseProgram(shader("ltc_deferred"));
     std::stringstream ss;
-    ss << "area_lights[" << i << "].";
-    uniform("ltc_deferred", ss.str() + "intensity", l.light_intensity);
-    uniform("ltc_deferred", ss.str() + "dcolor", l.diff_color);
-    uniform("ltc_deferred", ss.str() + "scolor", l.spec_color);
+    ss << "[" << i << "]";
+    uniform("ltc_deferred", "intensity" + ss.str(), l.light_intensity);
+    uniform("ltc_deferred", "dcolor" + ss.str(), l.diff_color);
+    uniform("ltc_deferred", "scolor" + ss.str(), l.spec_color);
 
-    uniform("ltc_deferred", ss.str() + "p1", glm::vec3(current_points[0]));
-    uniform("ltc_deferred", ss.str() + "p2", glm::vec3(current_points[1]));
-    uniform("ltc_deferred", ss.str() + "p3", glm::vec3(current_points[2]));
-    uniform("ltc_deferred", ss.str() + "p4", glm::vec3(current_points[3]));
+    for (unsigned int j = 0; j < 4; ++j) {
+      int num = 4*i+j;
+      std::stringstream pss;
+      pss << "[" << num << "]";
+      uniform("ltc_deferred", "ap" + pss.str(), glm::vec3(current_points[j]));
+    }
 
     // bind all textures
     glActiveTexture(GL_TEXTURE0);
@@ -340,7 +342,7 @@ BasicLTC::BasicLTC(std::string const& resource_path)
  ,point{}
  ,ltc_texture_1{0}
  ,ltc_texture_2{0}
- ,bool_deferred{false}
+ ,bool_deferred{true}
  ,gbuffer{}
  ,tex_normal{resolution(), GL_RGBA32F}
  ,tex_position{resolution(), GL_RGBA32F}
@@ -388,6 +390,9 @@ BasicLTC::BasicLTC(std::string const& resource_path)
 }
 
 void BasicLTC::initializeGUI() {
+  TwAddVarRW(tweakBar, "deferred", TW_TYPE_BOOLCPP, &bool_deferred, "label='render deferred'");
+  TwAddVarRW(tweakBar, "roughness", TW_TYPE_FLOAT, &roughness, "label='roughness' min=0.01 step=0.001 max=1");
+  TwAddVarRW(tweakBar, "clipless", TW_TYPE_BOOLCPP, &clipless, "label='clipless'");
   for (unsigned int i = 0; i < area_lights.size(); ++i) {
     AreaLight& l = area_lights[i]; // reference!
     std::stringstream ss;
@@ -403,9 +408,6 @@ void BasicLTC::initializeGUI() {
     TwAddVarRW(tweakBar, ("spec_color" + ss.str()).c_str(), TW_TYPE_COLOR3F, &(l.spec_color), "label='spec_color'");
   }
   TwAddSeparator(tweakBar, "sep123", nullptr);
-  TwAddVarRW(tweakBar, "deferred", TW_TYPE_BOOLCPP, &bool_deferred, "label='render deferred'");
-  TwAddVarRW(tweakBar, "roughness", TW_TYPE_FLOAT, &roughness, "label='roughness' min=0.01 step=0.001 max=1");
-  TwAddVarRW(tweakBar, "clipless", TW_TYPE_BOOLCPP, &clipless, "label='clipless'");
 }
 
 // load shader programs

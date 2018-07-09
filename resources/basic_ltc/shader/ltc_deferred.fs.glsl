@@ -22,19 +22,27 @@ uniform vec3 camera_position;
 uniform sampler2D ltc_1;
 uniform sampler2D ltc_2;
 
-struct AreaLight {
-  float intensity;
-  vec3 dcolor;
-  vec3 scolor;
+// This doesn't work on my laptop
+//struct AreaLight {
+//  float intensity;
+//  vec3 dcolor;
+//  vec3 scolor;
+//
+//  vec3 p1;
+//  vec3 p2;
+//  vec3 p3;
+//  vec3 p4;
+//};
+//const int MAX_LIGHTS = 10;
+//uniform int num_lights;
+//uniform AreaLight area_lights[MAX_LIGHTS];
 
-  vec3 p1;
-  vec3 p2;
-  vec3 p3;
-  vec3 p4;
-};
-const int MAX_LIGHTS = 10;
+const int MAX_LIGHTS = 4;
+uniform float intensity[MAX_LIGHTS];
+uniform vec3 dcolor[MAX_LIGHTS];
+uniform vec3 scolor[MAX_LIGHTS];
+uniform vec3 ap[4*MAX_LIGHTS];
 uniform int num_lights;
-uniform AreaLight area_lights[MAX_LIGHTS];
 
 const float LUT_SIZE  = 64.0;
 const float LUT_SCALE = (LUT_SIZE - 1.0)/LUT_SIZE;
@@ -300,14 +308,14 @@ void main()
     vec3 col = vec3(0);
     for (int i = 0; i < num_lights; ++i) {
       vec3 points[4];
-      points[0] = area_lights[i].p1;
-      points[1] = area_lights[i].p2;
-      points[2] = area_lights[i].p3;
-      points[3] = area_lights[i].p4;
+      points[0] = ap[4*i+0];
+      points[1] = ap[4*i+1];
+      points[2] = ap[4*i+2];
+      points[3] = ap[4*i+3];
 
-      vec3 lcol = vec3(area_lights[i].intensity);
-      vec3 dcol = ToLinear(area_lights[i].dcolor);
-      vec3 scol = ToLinear(area_lights[i].scolor);
+      vec3 lcol = vec3(intensity[i]);
+      vec3 dcol = ToLinear(dcolor[i]);
+      vec3 scol = ToLinear(scolor[i]);
 
       vec3 spec = LTC_Evaluate(N, V, pos, Minv, points);
       // BRDF shadowing and Fresnel
