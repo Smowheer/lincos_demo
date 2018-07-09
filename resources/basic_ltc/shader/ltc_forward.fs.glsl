@@ -1,10 +1,4 @@
 #version 330
-// bind intensity   {label:"Light Intensity", default:4, min:0, max:10}
-// bind dcolor      {label:"Diffuse Color",  r:1.0, g:1.0, b:1.0}
-// bind scolor      {label:"Specular Color", r:0.23, g:0.23, b:0.23}
-// bind roughness   {label:"Roughness", default:0.25, min:0.01, max:1, step:0.001}
-// bind clipless    {label:"Clipless Approximation", default:false}
-
 // IN
 in vec3 w_normal;
 in vec3 w_position;
@@ -15,8 +9,6 @@ out vec4 FragColor;
 // UNIFORMS
 uniform float roughness;
 
-//uniform bool clipless;
-
 uniform float intensity;
 uniform vec3  dcolor;
 uniform vec3  scolor;
@@ -24,11 +16,6 @@ uniform vec3  scolor;
 const int MAX_POINTS = 20;
 uniform int n_points;
 uniform vec3 points_arr[MAX_POINTS];
-
-//uniform vec3 p1;
-//uniform vec3 p2;
-//uniform vec3 p3;
-//uniform vec3 p4;
 
 uniform vec3 camera_position;
 
@@ -38,18 +25,6 @@ uniform sampler2D ltc_2;
 const float LUT_SIZE  = 64.0;
 const float LUT_SCALE = (LUT_SIZE - 1.0)/LUT_SIZE;
 const float LUT_BIAS  = 0.5/LUT_SIZE;
-
-const float pi = 3.14159265;
-
-vec3 mul(mat3 m, vec3 v)
-{
-    return m * v;
-}
-
-mat3 mul(mat3 m1, mat3 m2)
-{
-    return m1 * m2;
-}
 
 // Linearly Transformed Cosines
 ///////////////////////////////
@@ -73,118 +48,6 @@ float IntegrateEdge(vec3 v1, vec3 v2)
     return IntegrateEdgeVec(v1, v2).z;
 }
 
-void ClipQuadToHorizon(inout vec3 L[5], out int n)
-{
-    // detect clipping config
-    int config = 0;
-    if (L[0].z > 0.0) config += 1;
-    if (L[1].z > 0.0) config += 2;
-    if (L[2].z > 0.0) config += 4;
-    if (L[3].z > 0.0) config += 8;
-
-    // clip
-    n = 0;
-
-    if (config == 0)
-    {
-        // clip all
-    }
-    else if (config == 1) // V1 clip V2 V3 V4
-    {
-        n = 3;
-        L[1] = -L[1].z * L[0] + L[0].z * L[1];
-        L[2] = -L[3].z * L[0] + L[0].z * L[3];
-    }
-    else if (config == 2) // V2 clip V1 V3 V4
-    {
-        n = 3;
-        L[0] = -L[0].z * L[1] + L[1].z * L[0];
-        L[2] = -L[2].z * L[1] + L[1].z * L[2];
-    }
-    else if (config == 3) // V1 V2 clip V3 V4
-    {
-        n = 4;
-        L[2] = -L[2].z * L[1] + L[1].z * L[2];
-        L[3] = -L[3].z * L[0] + L[0].z * L[3];
-    }
-    else if (config == 4) // V3 clip V1 V2 V4
-    {
-        n = 3;
-        L[0] = -L[3].z * L[2] + L[2].z * L[3];
-        L[1] = -L[1].z * L[2] + L[2].z * L[1];
-    }
-    else if (config == 5) // V1 V3 clip V2 V4) impossible
-    {
-        n = 0;
-    }
-    else if (config == 6) // V2 V3 clip V1 V4
-    {
-        n = 4;
-        L[0] = -L[0].z * L[1] + L[1].z * L[0];
-        L[3] = -L[3].z * L[2] + L[2].z * L[3];
-    }
-    else if (config == 7) // V1 V2 V3 clip V4
-    {
-        n = 5;
-        L[4] = -L[3].z * L[0] + L[0].z * L[3];
-        L[3] = -L[3].z * L[2] + L[2].z * L[3];
-    }
-    else if (config == 8) // V4 clip V1 V2 V3
-    {
-        n = 3;
-        L[0] = -L[0].z * L[3] + L[3].z * L[0];
-        L[1] = -L[2].z * L[3] + L[3].z * L[2];
-        L[2] =  L[3];
-    }
-    else if (config == 9) // V1 V4 clip V2 V3
-    {
-        n = 4;
-        L[1] = -L[1].z * L[0] + L[0].z * L[1];
-        L[2] = -L[2].z * L[3] + L[3].z * L[2];
-    }
-    else if (config == 10) // V2 V4 clip V1 V3) impossible
-    {
-        n = 0;
-    }
-    else if (config == 11) // V1 V2 V4 clip V3
-    {
-        n = 5;
-        L[4] = L[3];
-        L[3] = -L[2].z * L[3] + L[3].z * L[2];
-        L[2] = -L[2].z * L[1] + L[1].z * L[2];
-    }
-    else if (config == 12) // V3 V4 clip V1 V2
-    {
-        n = 4;
-        L[1] = -L[1].z * L[2] + L[2].z * L[1];
-        L[0] = -L[0].z * L[3] + L[3].z * L[0];
-    }
-    else if (config == 13) // V1 V3 V4 clip V2
-    {
-        n = 5;
-        L[4] = L[3];
-        L[3] = L[2];
-        L[2] = -L[1].z * L[2] + L[2].z * L[1];
-        L[1] = -L[1].z * L[0] + L[0].z * L[1];
-    }
-    else if (config == 14) // V2 V3 V4 clip V1
-    {
-        n = 5;
-        L[4] = -L[0].z * L[3] + L[3].z * L[0];
-        L[0] = -L[0].z * L[1] + L[1].z * L[0];
-    }
-    else if (config == 15) // V1 V2 V3 V4
-    {
-        n = 4;
-    }
-
-    if (n == 3)
-        L[3] = L[0];
-    if (n == 4)
-        L[4] = L[0];
-}
-
-
 vec3 LTC_Evaluate(
     vec3 N, vec3 V, vec3 P, mat3 Minv)
 {
@@ -194,94 +57,53 @@ vec3 LTC_Evaluate(
     T2 = cross(N, T1);
 
     // rotate area light in (T1, T2, N) basis
-    Minv = mul(Minv, transpose(mat3(T1, T2, N)));
+    Minv = Minv * transpose(mat3(T1, T2, N));
 
     // polygon (allocate 5 vertices for clipping)
     vec3 L[MAX_POINTS];
     for (int i = 0; i < n_points; ++i) {
-      L[i] = mul(Minv, points_arr[i] - P);
+      L[i] = Minv * (points_arr[i] - P);
     }
-    //L[0] = mul(Minv, points[0] - P);
-    //L[1] = mul(Minv, points[1] - P);
-    //L[2] = mul(Minv, points[2] - P);
-    //L[3] = mul(Minv, points[3] - P);
 
     // integrate
     float sum = 0.0;
 
-    if (true)
-    {
-        vec3 dir = points_arr[0].xyz - P;
-        // need at least three points for surface changed points[3] -> points[2]
-        vec3 lightNormal = cross(points_arr[1] - points_arr[0], points_arr[2] - points_arr[0]);
-        bool behind = (dot(dir, lightNormal) < 0.0);
+    vec3 dir = points_arr[0].xyz - P;
 
-        for (int i = 0; i < n_points; ++i) {
-          L[i] = normalize(L[i]);
-        }
-        //L[0] = normalize(L[0]);
-        //L[1] = normalize(L[1]);
-        //L[2] = normalize(L[2]);
-        //L[3] = normalize(L[3]);
+    vec3 lightNormal = cross(points_arr[1] - points_arr[0], points_arr[2] - points_arr[0]);
+    bool behind = (dot(dir, lightNormal) < 0.0);
 
-        vec3 vsum = vec3(0.0);
-
-        for (int i = 0; i < n_points-1; ++i) {
-          vsum += IntegrateEdgeVec(L[i], L[i+1]);
-        }
-        vsum += IntegrateEdgeVec(L[n_points-1], L[0]);
-        //vsum += IntegrateEdgeVec(L[0], L[1]);
-        //vsum += IntegrateEdgeVec(L[1], L[2]);
-        //vsum += IntegrateEdgeVec(L[2], L[3]);
-        //vsum += IntegrateEdgeVec(L[3], L[0]);
-
-        float len = length(vsum);
-        float z = vsum.z/len;
-
-        if (behind)
-            z = -z;
-
-        vec2 uv = vec2(z*0.5 + 0.5, len);
-        uv = uv*LUT_SCALE + LUT_BIAS;
-
-        float scale = texture(ltc_2, uv).w;
-
-        sum = len*scale;
-
-        if (behind)
-            sum = 0.0;
+    for (int i = 0; i < n_points; ++i) {
+      L[i] = normalize(L[i]);
     }
-    //else
-    //{
-    //    int n;
-    //    ClipQuadToHorizon(L, n);
 
-    //    if (n == 0)
-    //        return vec3(0, 0, 0);
-    //    // project onto sphere
-    //    L[0] = normalize(L[0]);
-    //    L[1] = normalize(L[1]);
-    //    L[2] = normalize(L[2]);
-    //    L[3] = normalize(L[3]);
-    //    L[4] = normalize(L[4]);
+    vec3 vsum = vec3(0.0);
 
-    //    // integrate
-    //    sum += IntegrateEdge(L[0], L[1]);
-    //    sum += IntegrateEdge(L[1], L[2]);
-    //    sum += IntegrateEdge(L[2], L[3]);
-    //    if (n >= 4)
-    //        sum += IntegrateEdge(L[3], L[4]);
-    //    if (n == 5)
-    //        sum += IntegrateEdge(L[4], L[0]);
+    for (int i = 0; i < n_points-1; ++i) {
+      vsum += IntegrateEdgeVec(L[i], L[i+1]);
+    }
+    vsum += IntegrateEdgeVec(L[n_points-1], L[0]);
 
-    //    sum = max(0.0, sum);
-    //}
+    float len = length(vsum);
+    float z = vsum.z/len;
+
+    if (behind)
+      z = -z;
+
+    vec2 uv = vec2(z*0.5 + 0.5, len);
+    uv = uv*LUT_SCALE + LUT_BIAS;
+
+    float scale = texture(ltc_2, uv).w;
+
+    sum = len*scale;
+
+    if (behind)
+      sum = 0.0;
 
     vec3 Lo_i = vec3(sum, sum, sum);
 
     return Lo_i;
 }
-
 
 // Misc. helpers
 ////////////////
@@ -298,7 +120,6 @@ vec3 PowVec3(vec3 v, float p)
 
 const float gamma = 2.2;
 vec3 ToLinear(vec3 v) { return PowVec3(v, gamma); }
-
 
 void main()
 {

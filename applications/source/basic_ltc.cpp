@@ -23,11 +23,6 @@
 #include "shader_loader.hpp"
 
 void BasicLTC::render() {
-  //if (bool_deferred) {
-  //  render_deferred();
-  //} else {
-  //  render_forward();
-  //}
 
   render_forward();
 
@@ -43,152 +38,7 @@ void BasicLTC::render() {
   glUseProgram(0);
 }
 
-// DEFERRED RENDERING
-//void BasicLTC::render_deferred() {
-//  // draw the geometry to gbuffer
-//  gbuffer.bind();
-//  {
-//    glClearColor(0.1f, 0.1f, 0.1f, 1);
-//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//    glEnable(GL_DEPTH_TEST);
-//    render_gbuffer();
-//  }
-//  gbuffer.unbind();
-//  
-//  // draw the colors to rtt_framebuffer
-//  glBindFramebuffer(GL_FRAMEBUFFER, rtt_framebuffer);
-//  {
-//    // render with gbuffer
-//    glClearColor(0.1f, 0.1f, 0.1f, 1.0f); 
-//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//    glEnable(GL_DEPTH_TEST);
-//    render_ltc_deferred();
-//  }
-//  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//}
-//
-//void BasicLTC::render_gbuffer() {
-//  // draw the ground
-//  glUseProgram(shader("ltc_gbuffer"));
-//
-//  // vertex shader uniforms
-//  uniform("ltc_gbuffer", "viewMatrix", viewMatrix());
-//  uniform("ltc_gbuffer", "projMatrix", projectionMatrix());
-//
-//  draw_basic_scene("ltc_gbuffer");
-//
-//  glUseProgram(0);
-//}
-//
-//void BasicLTC::render_ltc_deferred() {
-//  // setup global stuff
-//  std::vector<glm::vec4> points = {
-//   glm::vec4(-12.0f, 0.0f, -12.0f, 1.0f),
-//   glm::vec4(-12.0f, 0.0f, 12.0f, 1.0f),
-//   glm::vec4(12.0f, 0.0f, 12.0f, 1.0f),
-//   glm::vec4(12.0f, 0.0f, -12.0f, 1.0f)
-//  };
-//  std::vector<glm::vec4> current_points(4, glm::vec4(0.0));
-//  std::vector<glm::vec3> colors = {
-//    glm::vec3(1.0,0.0,0.0),
-//    glm::vec3(0.0,1.0,0.0),
-//    glm::vec3(0.0,0.0,1.0),
-//    glm::vec3(1.0,1.0,0.0)
-//  };
-//  // set global uniforms
-//  glUseProgram(shader("arealight"));
-//  {
-//    // setup view and proj matrix
-//    uniform("arealight", "viewMatrix", viewMatrix());
-//    uniform("arealight", "projMatrix", projectionMatrix());
-//  }
-//  glUseProgram(0);
-//
-//  glUseProgram(shader("ltc_deferred"));
-//  {
-//    uniform("ltc_deferred", "normal", 0);
-//    uniform("ltc_deferred", "position", 1);
-//    uniform("ltc_deferred", "depth", 2);
-//
-//    uniform("ltc_deferred", "roughness", roughness);
-//
-//    uniform("ltc_deferred", "clipless", clipless);
-//
-//    uniform("ltc_deferred", "camera_position", m_cam.position);
-//
-//    uniform("ltc_deferred", "ltc_1", 3);
-//    uniform("ltc_deferred", "ltc_2", 4);
-//
-//    uniform("ltc_deferred", "num_lights", (int)(area_lights.size()));
-//  }
-//  glUseProgram(0);
-//  
-//  // first draw the lights
-//  for (unsigned int i = 0; i < area_lights.size(); ++i) {
-//    AreaLight l = area_lights[i];
-//    glm::mat4 modelMatrix = glm::mat4(1.0f);
-//    modelMatrix = glm::translate(modelMatrix, l.light_position);
-//    modelMatrix = glm::rotate(modelMatrix, glm::radians(l.rotation_y), glm::vec3(0.0,1.0,0.0));
-//    modelMatrix = glm::rotate(modelMatrix, glm::radians(l.rotation_x), glm::vec3(1.0,0.0,0.0));
-//    modelMatrix = glm::scale(modelMatrix, glm::vec3(l.scale_x, 1.0, l.scale_y));
-//    modelMatrix = glm::scale(modelMatrix, glm::vec3(0.2f));
-//    glUseProgram(shader("arealight"));
-//    {
-//      // draw the area light
-//      uniform("arealight", "modelMatrix", modelMatrix);
-//      uniform("arealight", "u_color", l.diff_color);
-//      plane.draw();
-//
-//      // draw the points passed to the ltc shader
-//      glPointSize(10.0f);
-//      for (int j = 0; j < 4; ++j) {
-//        current_points[j] = modelMatrix * points[j];
-//        current_points[j] = current_points[j] / current_points[j].a;
-//        glm::mat4 pModel = glm::translate(glm::mat4(1.0f), glm::vec3(current_points[j]));
-//        uniform("arealight", "modelMatrix", pModel);
-//        uniform("arealight", "u_color", colors[j]);
-//        point.draw();
-//      }
-//    }
-//    glUseProgram(0);
-//
-//    // draw with ltc
-//    glUseProgram(shader("ltc_deferred"));
-//    std::stringstream ss;
-//    ss << "[" << i << "]";
-//    uniform("ltc_deferred", "intensity" + ss.str(), l.light_intensity);
-//    uniform("ltc_deferred", "dcolor" + ss.str(), l.diff_color);
-//    uniform("ltc_deferred", "scolor" + ss.str(), l.spec_color);
-//
-//    for (unsigned int j = 0; j < 4; ++j) {
-//      int num = 4*i+j;
-//      std::stringstream pss;
-//      pss << "[" << num << "]";
-//      uniform("ltc_deferred", "ap" + pss.str(), glm::vec3(current_points[j]));
-//    }
-//
-//    // bind all textures
-//    glActiveTexture(GL_TEXTURE0);
-//    tex_normal.bind();
-//    glActiveTexture(GL_TEXTURE1);
-//    tex_position.bind();
-//    glActiveTexture(GL_TEXTURE2);
-//    tex_depth.bind();
-//    glActiveTexture(GL_TEXTURE3);
-//    glBindTexture(GL_TEXTURE_2D, ltc_texture_1);
-//    glActiveTexture(GL_TEXTURE4);
-//    glBindTexture(GL_TEXTURE_2D, ltc_texture_2);
-//    // draw screen quad
-//    quad.draw();
-//
-//    glUseProgram(0);
-//  }
-//}
-//// END OF DEFERRED RENDERING
-
-
 // FORWARD RENDERING faster than deferred here
-
 void BasicLTC::render_forward() {
   glBlendFunc(GL_ONE, GL_ONE);
   glEnable(GL_DEPTH_TEST);
@@ -283,8 +133,6 @@ void BasicLTC::render_ltc_forward(unsigned int light_idx) {
 
     uniform("ltc_forward", "roughness", roughness);
 
-    //uniform("ltc_forward", "clipless", clipless);
-
     uniform("ltc_forward", "camera_position", m_cam.position);
 
     uniform("ltc_forward", "ltc_1", 0);
@@ -300,10 +148,6 @@ void BasicLTC::render_ltc_forward(unsigned int light_idx) {
       ss << "points_arr[" << i << "]";
       uniform("ltc_forward", ss.str(), glm::vec3(points[i]));
     }
-    //uniform("ltc_forward", "p1", glm::vec3(points[0]));
-    //uniform("ltc_forward", "p2", glm::vec3(points[1]));
-    //uniform("ltc_forward", "p3", glm::vec3(points[2]));
-    //uniform("ltc_forward", "p4", glm::vec3(points[3]));
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, ltc_texture_1);
@@ -311,7 +155,6 @@ void BasicLTC::render_ltc_forward(unsigned int light_idx) {
     glBindTexture(GL_TEXTURE_2D, ltc_texture_2);
 
     // draw objects
-
     draw_basic_scene("ltc_forward");
   }
   glUseProgram(0);
@@ -338,18 +181,13 @@ BasicLTC::BasicLTC(std::string const& resource_path)
  ,point{}
  ,ltc_texture_1{0}
  ,ltc_texture_2{0}
- //,bool_deferred{true}
- ,gbuffer{}
- ,tex_normal{resolution(), GL_RGBA32F}
- ,tex_position{resolution(), GL_RGBA32F}
- ,tex_depth{resolution(), GL_DEPTH_COMPONENT}
  ,rtt_framebuffer{0}
  ,depthbuffer{0}
  ,rtt_texture{0}
  ,area_lights{
    {
      AreaLight(
-         new shurikenModel(),
+         new groundPlane(0.0, 2.4f),
          glm::vec3(-5.0, 5.0, 0.0),
          -90.0f,
          90.0f,
@@ -371,7 +209,6 @@ BasicLTC::BasicLTC(std::string const& resource_path)
    }
  }
  ,roughness{0.25f}
- //,clipless{}
 {
   initializeGUI();
   initializeObjects();
@@ -409,14 +246,6 @@ void BasicLTC::initializeShaderPrograms() {
       {{GL_VERTEX_SHADER, m_resource_path + "./shader/ltc_forward.vs.glsl"},
       {GL_FRAGMENT_SHADER, m_resource_path + "./shader/ltc_forward.fs.glsl"}});
 
-  initializeShader("ltc_gbuffer",
-      {{GL_VERTEX_SHADER, m_resource_path + "./shader/ltc_gbuffer.vs.glsl"},
-      {GL_FRAGMENT_SHADER, m_resource_path + "./shader/ltc_gbuffer.fs.glsl"}});
-
-  initializeShader("ltc_deferred",
-      {{GL_VERTEX_SHADER, m_resource_path + "./shader/ltc_deferred.vs.glsl"},
-      {GL_FRAGMENT_SHADER, m_resource_path + "./shader/ltc_deferred.fs.glsl"}});
-
   initializeShader("ltc_blit",
       {{GL_VERTEX_SHADER, m_resource_path + "./shader/ltc_blit.vs.glsl"},
       {GL_FRAGMENT_SHADER, m_resource_path + "./shader/ltc_blit.fs.glsl"}});
@@ -450,21 +279,6 @@ void BasicLTC::initializeObjects() {
 }
 
 void BasicLTC::resize() {
-
-  // re-initialize objects for deffered shading
-  gbuffer = Fbo{};
-  //tex_diffuse = Tex{resolution(), GL_RGBA32F};
-  tex_normal = Tex{resolution(), GL_RGBA32F};
-  tex_position = Tex{resolution(), GL_RGBA32F};
-  tex_depth = Tex{resolution(), GL_DEPTH_COMPONENT32};
-  gbuffer.bind();
-  //gbuffer.addTextureAsColorbuffer(tex_diffuse);
-  gbuffer.addTextureAsColorbuffer(tex_normal);
-  gbuffer.addTextureAsColorbuffer(tex_position);
-  gbuffer.addTextureAsDepthbuffer(tex_depth);
-  gbuffer.check();
-  gbuffer.unbind();
-
   // re-initialize objects for ACES
   glBindFramebuffer(GL_FRAMEBUFFER, rtt_framebuffer);
   // framebuffer texture
