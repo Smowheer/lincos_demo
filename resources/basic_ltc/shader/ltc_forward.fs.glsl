@@ -15,16 +15,20 @@ out vec4 FragColor;
 // UNIFORMS
 uniform float roughness;
 
-uniform bool clipless;
+//uniform bool clipless;
 
 uniform float intensity;
 uniform vec3  dcolor;
 uniform vec3  scolor;
 
-uniform vec3 p1;
-uniform vec3 p2;
-uniform vec3 p3;
-uniform vec3 p4;
+const int MAX_POINTS = 20;
+uniform int n_points;
+uniform vec3 points_arr[MAX_POINTS];
+
+//uniform vec3 p1;
+//uniform vec3 p2;
+//uniform vec3 p3;
+//uniform vec3 p4;
 
 uniform vec3 camera_position;
 
@@ -182,7 +186,7 @@ void ClipQuadToHorizon(inout vec3 L[5], out int n)
 
 
 vec3 LTC_Evaluate(
-    vec3 N, vec3 V, vec3 P, mat3 Minv, vec3 points[4])
+    vec3 N, vec3 V, vec3 P, mat3 Minv)
 {
     // construct orthonormal basis around N
     vec3 T1, T2;
@@ -193,32 +197,43 @@ vec3 LTC_Evaluate(
     Minv = mul(Minv, transpose(mat3(T1, T2, N)));
 
     // polygon (allocate 5 vertices for clipping)
-    vec3 L[5];
-    L[0] = mul(Minv, points[0] - P);
-    L[1] = mul(Minv, points[1] - P);
-    L[2] = mul(Minv, points[2] - P);
-    L[3] = mul(Minv, points[3] - P);
+    vec3 L[MAX_POINTS];
+    for (int i = 0; i < n_points; ++i) {
+      L[i] = mul(Minv, points_arr[i] - P);
+    }
+    //L[0] = mul(Minv, points[0] - P);
+    //L[1] = mul(Minv, points[1] - P);
+    //L[2] = mul(Minv, points[2] - P);
+    //L[3] = mul(Minv, points[3] - P);
 
     // integrate
     float sum = 0.0;
 
-    if (clipless)
+    if (true)
     {
-        vec3 dir = points[0].xyz - P;
-        vec3 lightNormal = cross(points[1] - points[0], points[3] - points[0]);
+        vec3 dir = points_arr[0].xyz - P;
+        // need at least three points for surface changed points[3] -> points[2]
+        vec3 lightNormal = cross(points_arr[1] - points_arr[0], points_arr[2] - points_arr[0]);
         bool behind = (dot(dir, lightNormal) < 0.0);
 
-        L[0] = normalize(L[0]);
-        L[1] = normalize(L[1]);
-        L[2] = normalize(L[2]);
-        L[3] = normalize(L[3]);
+        for (int i = 0; i < n_points; ++i) {
+          L[i] = normalize(L[i]);
+        }
+        //L[0] = normalize(L[0]);
+        //L[1] = normalize(L[1]);
+        //L[2] = normalize(L[2]);
+        //L[3] = normalize(L[3]);
 
         vec3 vsum = vec3(0.0);
 
-        vsum += IntegrateEdgeVec(L[0], L[1]);
-        vsum += IntegrateEdgeVec(L[1], L[2]);
-        vsum += IntegrateEdgeVec(L[2], L[3]);
-        vsum += IntegrateEdgeVec(L[3], L[0]);
+        for (int i = 0; i < n_points-1; ++i) {
+          vsum += IntegrateEdgeVec(L[i], L[i+1]);
+        }
+        vsum += IntegrateEdgeVec(L[n_points-1], L[0]);
+        //vsum += IntegrateEdgeVec(L[0], L[1]);
+        //vsum += IntegrateEdgeVec(L[1], L[2]);
+        //vsum += IntegrateEdgeVec(L[2], L[3]);
+        //vsum += IntegrateEdgeVec(L[3], L[0]);
 
         float len = length(vsum);
         float z = vsum.z/len;
@@ -236,31 +251,31 @@ vec3 LTC_Evaluate(
         if (behind)
             sum = 0.0;
     }
-    else
-    {
-        int n;
-        ClipQuadToHorizon(L, n);
+    //else
+    //{
+    //    int n;
+    //    ClipQuadToHorizon(L, n);
 
-        if (n == 0)
-            return vec3(0, 0, 0);
-        // project onto sphere
-        L[0] = normalize(L[0]);
-        L[1] = normalize(L[1]);
-        L[2] = normalize(L[2]);
-        L[3] = normalize(L[3]);
-        L[4] = normalize(L[4]);
+    //    if (n == 0)
+    //        return vec3(0, 0, 0);
+    //    // project onto sphere
+    //    L[0] = normalize(L[0]);
+    //    L[1] = normalize(L[1]);
+    //    L[2] = normalize(L[2]);
+    //    L[3] = normalize(L[3]);
+    //    L[4] = normalize(L[4]);
 
-        // integrate
-        sum += IntegrateEdge(L[0], L[1]);
-        sum += IntegrateEdge(L[1], L[2]);
-        sum += IntegrateEdge(L[2], L[3]);
-        if (n >= 4)
-            sum += IntegrateEdge(L[3], L[4]);
-        if (n == 5)
-            sum += IntegrateEdge(L[4], L[0]);
+    //    // integrate
+    //    sum += IntegrateEdge(L[0], L[1]);
+    //    sum += IntegrateEdge(L[1], L[2]);
+    //    sum += IntegrateEdge(L[2], L[3]);
+    //    if (n >= 4)
+    //        sum += IntegrateEdge(L[3], L[4]);
+    //    if (n == 5)
+    //        sum += IntegrateEdge(L[4], L[0]);
 
-        sum = max(0.0, sum);
-    }
+    //    sum = max(0.0, sum);
+    //}
 
     vec3 Lo_i = vec3(sum, sum, sum);
 
@@ -287,12 +302,6 @@ vec3 ToLinear(vec3 v) { return PowVec3(v, gamma); }
 
 void main()
 {
-    vec3 points[4];
-    points[0] = p1;
-    points[1] = p2;
-    points[2] = p3;
-    points[3] = p4;
-
     vec3 lcol = vec3(intensity);
     vec3 dcol = ToLinear(dcolor);
     vec3 scol = ToLinear(scolor);
@@ -317,11 +326,11 @@ void main()
 				vec3(t1.z, 0, t1.w)
 				);
 
-		vec3 spec = LTC_Evaluate(N, V, pos, Minv, points);
+		vec3 spec = LTC_Evaluate(N, V, pos, Minv);
 		// BRDF shadowing and Fresnel
 		spec *= scol*t2.x + (1.0 - scol)*t2.y;
 
-		vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points);
+		vec3 diff = LTC_Evaluate(N, V, pos, mat3(1));
 
 		col = lcol*(spec + dcol*diff);
 

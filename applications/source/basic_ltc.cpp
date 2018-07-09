@@ -242,7 +242,7 @@ void BasicLTC::render_light_forward(unsigned int light_idx) {
 
     // transform the points and
     // draw the points passed to the ltc shader
-    glPointSize(10.0f);
+    glPointSize(2.5f);
     uniform("arealight", "u_color", glm::vec3(1.0, 0.0, 0.0));
     for (int j = 0; j < n_points; ++j) {
       points[j] = modelMatrix * points[j];
@@ -270,7 +270,7 @@ void BasicLTC::render_ltc_forward(unsigned int light_idx) {
   modelMatrix = glm::rotate(modelMatrix, glm::radians(l.rotation_x), glm::vec3(1.0,0.0,0.0));
   modelMatrix = glm::scale(modelMatrix, glm::vec3(l.scale_x, 1.0, l.scale_y));
 
-  for (int j = 0; j < 4; ++j) {
+  for (int j = 0; j < n_points; ++j) {
     points[j] = modelMatrix * points[j];
     points[j] = points[j] / points[j].a;
   }
@@ -283,7 +283,7 @@ void BasicLTC::render_ltc_forward(unsigned int light_idx) {
 
     uniform("ltc_forward", "roughness", roughness);
 
-    uniform("ltc_forward", "clipless", clipless);
+    //uniform("ltc_forward", "clipless", clipless);
 
     uniform("ltc_forward", "camera_position", m_cam.position);
 
@@ -294,10 +294,16 @@ void BasicLTC::render_ltc_forward(unsigned int light_idx) {
     uniform("ltc_forward", "dcolor", l.diff_color);
     uniform("ltc_forward", "scolor", l.spec_color);
 
-    uniform("ltc_forward", "p1", glm::vec3(points[0]));
-    uniform("ltc_forward", "p2", glm::vec3(points[1]));
-    uniform("ltc_forward", "p3", glm::vec3(points[2]));
-    uniform("ltc_forward", "p4", glm::vec3(points[3]));
+    uniform("ltc_forward", "n_points", n_points);
+    for (int i = 0; i < n_points; ++i) {
+      std::stringstream ss;
+      ss << "points_arr[" << i << "]";
+      uniform("ltc_forward", ss.str(), glm::vec3(points[i]));
+    }
+    //uniform("ltc_forward", "p1", glm::vec3(points[0]));
+    //uniform("ltc_forward", "p2", glm::vec3(points[1]));
+    //uniform("ltc_forward", "p3", glm::vec3(points[2]));
+    //uniform("ltc_forward", "p4", glm::vec3(points[3]));
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, ltc_texture_1);
@@ -343,7 +349,7 @@ BasicLTC::BasicLTC(std::string const& resource_path)
  ,area_lights{
    {
      AreaLight(
-         new groundPlane(0.0, 2.4f),
+         new shurikenModel(),
          glm::vec3(-5.0, 5.0, 0.0),
          -90.0f,
          90.0f,
@@ -365,7 +371,7 @@ BasicLTC::BasicLTC(std::string const& resource_path)
    }
  }
  ,roughness{0.25f}
- ,clipless{}
+ //,clipless{}
 {
   initializeGUI();
   initializeObjects();
@@ -375,7 +381,7 @@ BasicLTC::BasicLTC(std::string const& resource_path)
 void BasicLTC::initializeGUI() {
   //TwAddVarRW(tweakBar, "deferred", TW_TYPE_BOOLCPP, &bool_deferred, "label='render deferred'");
   TwAddVarRW(tweakBar, "roughness", TW_TYPE_FLOAT, &roughness, "label='roughness' min=0.01 step=0.001 max=1");
-  TwAddVarRW(tweakBar, "clipless", TW_TYPE_BOOLCPP, &clipless, "label='clipless'");
+  //TwAddVarRW(tweakBar, "clipless", TW_TYPE_BOOLCPP, &clipless, "label='clipless'");
   for (unsigned int i = 0; i < area_lights.size(); ++i) {
     AreaLight& l = area_lights[i]; // reference!
     std::stringstream ss;
