@@ -10,8 +10,8 @@ using namespace gl;
 
 #include <glm/gtc/type_precision.hpp>
 
-const int WIDTH = 1024;
-const int HEIGHT = 768;
+const int WIDTH = 800; //1024;
+const int HEIGHT = 600; //768;
 
 // Texture
 class Tex {
