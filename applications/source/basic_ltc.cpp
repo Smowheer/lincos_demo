@@ -69,15 +69,10 @@ void BasicLTC::render_gbuffer() {
   glUseProgram(shader("ltc_gbuffer"));
 
   // vertex shader uniforms
-  uniform("ltc_gbuffer", "modelMatrix", glm::mat4(1.0));
   uniform("ltc_gbuffer", "viewMatrix", viewMatrix());
   uniform("ltc_gbuffer", "projMatrix", projectionMatrix());
 
-  // draw ground
-  plane.draw();
-
-  // draw the pot ( uniforms stay the same :) )
-  teaPot.draw();
+  draw_scene("ltc_gbuffer");
 
   glUseProgram(0);
 }
@@ -142,7 +137,7 @@ void BasicLTC::render_ltc_deferred() {
       plane.draw();
 
       // draw the points passed to the ltc shader
-      glPointSize(10.0f);
+      glPointSize(2.5f);
       for (int j = 0; j < 4; ++j) {
         current_points[j] = modelMatrix * points[j];
         current_points[j] = current_points[j] / current_points[j].a;
@@ -249,7 +244,7 @@ void BasicLTC::render_light_forward(unsigned int light_idx) {
 
     // transform the points and
     // draw the points passed to the ltc shader
-    glPointSize(10.0f);
+    glPointSize(2.5f);
     for (int j = 0; j < 4; ++j) {
       points[j] = modelMatrix * points[j];
       points[j] = points[j] / points[j].a;
@@ -319,18 +314,20 @@ void BasicLTC::render_ltc_forward(unsigned int light_idx) {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, ltc_texture_2);
 
-    // draw objects
-    uniform("ltc_forward", "modelMatrix", glm::mat4(1.0));
-    plane.draw();
-    teaPot.draw();
-    uniform("ltc_forward", "modelMatrix", glm::translate(glm::mat4(1.0), glm::vec3(3,0,3)));
-    teaPot.draw();
+    draw_scene("ltc_forward");
   }
   glUseProgram(0);
 }
 
 // END OF FORWARD RENDERING
 
+void BasicLTC::draw_scene(const std::string& current_shader) {
+    uniform(current_shader, "modelMatrix", glm::mat4(1.0));
+    plane.draw();
+    teaPot.draw();
+    //uniform(current_shader, "modelMatrix", glm::translate(glm::mat4(1.0), glm::vec3(3,0,3)));
+    //teaPot.draw();
+}
 
 BasicLTC::BasicLTC(std::string const& resource_path)
  :Application{resource_path + "basic_ltc/"}
@@ -351,35 +348,17 @@ BasicLTC::BasicLTC(std::string const& resource_path)
  ,area_lights{
    {
      AreaLight(
-         glm::vec3(-5.0, 5.0, 0.0),
-         -90.0f,
+         glm::vec3(-5.0, 2.0, 3.5),
+         270.0f,
          90.0f,
          0.8f,
          0.8f,
-         5.0f,
-         glm::vec3(1.0, 0.2, 1.0),
-         glm::vec3(1.0, 0.2, 1.0)),
-     AreaLight(
-         glm::vec3(5.0, 5.0, 0.0),
-         -90.0f,
-         -90.0f,
-         0.8f,
-         0.8f,
-         5.0f,
-         glm::vec3(1.0, 1.0, 0.0),
-         glm::vec3(1.0, 1.0, 0.0)),
-     //AreaLight(
-     //    glm::vec3(5.0, 5.0, 0.0),
-     //    -90.0f,
-     //    -90.0f,
-     //    0.8f,
-     //    0.8f,
-     //    5.0f,
-     //    glm::vec3(1.0, 1.0, 0.0),
-     //    glm::vec3(1.0, 1.0, 0.0))
+         30.0f,
+         glm::vec3(0.5, 0.0, 0.0),
+         glm::vec3(1.0, 1.0, 1.0)),
    }
  }
- ,roughness{0.25f}
+ ,roughness{0.625f}
  ,clipless{}
 {
   initializeGUI();
@@ -388,6 +367,10 @@ BasicLTC::BasicLTC(std::string const& resource_path)
 }
 
 void BasicLTC::initializeGUI() {
+  TwAddVarRW(tweakBar, "clipless", TW_TYPE_BOOLCPP, &clipless, "label='clipless'");
+  TwAddVarRW(tweakBar, "deferred", TW_TYPE_BOOLCPP, &bool_deferred, "label='render deferred'");
+  TwAddSeparator(tweakBar, "sep1256", nullptr);
+  TwAddVarRW(tweakBar, "roughness", TW_TYPE_FLOAT, &roughness, "label='roughness' min=0.01 step=0.001 max=1");
   for (unsigned int i = 0; i < area_lights.size(); ++i) {
     AreaLight& l = area_lights[i]; // reference!
     std::stringstream ss;
@@ -396,16 +379,13 @@ void BasicLTC::initializeGUI() {
     TwAddVarRW(tweakBar, ("light_position" + ss.str()).c_str(), TW_TYPE_DIR3F, &(l.light_position), "label='light_position'");
     TwAddVarRW(tweakBar, ("rotation_x" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.rotation_x), "label='rotation_x' min=0 step=1.0 max=360");
     TwAddVarRW(tweakBar, ("rotation_y" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.rotation_y), "label='rotation_y' min=0 step=1.0 max=360");
-    TwAddVarRW(tweakBar, ("scale_x" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.scale_x), "label='scale_x' min=0.1 step=0.1 max=10");
-    TwAddVarRW(tweakBar, ("scale_y" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.scale_y), "label='scale_y' min=0.1 step=0.1 max=10");
+    TwAddVarRW(tweakBar, ("scale_x" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.scale_x), "label='scale_x' min=0.001 step=0.001 max=3");
+    TwAddVarRW(tweakBar, ("scale_y" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.scale_y), "label='scale_y' min=0.001 step=0.001 max=3");
     TwAddVarRW(tweakBar, ("light_intensity" + ss.str()).c_str(), TW_TYPE_FLOAT, &(l.light_intensity), "label='light_intensity' min=0.1 step=0.1 max=30");
     TwAddVarRW(tweakBar, ("diff_color" + ss.str()).c_str(), TW_TYPE_COLOR3F, &(l.diff_color), "label='diff_color'");
     TwAddVarRW(tweakBar, ("spec_color" + ss.str()).c_str(), TW_TYPE_COLOR3F, &(l.spec_color), "label='spec_color'");
   }
   TwAddSeparator(tweakBar, "sep123", nullptr);
-  TwAddVarRW(tweakBar, "deferred", TW_TYPE_BOOLCPP, &bool_deferred, "label='render deferred'");
-  TwAddVarRW(tweakBar, "roughness", TW_TYPE_FLOAT, &roughness, "label='roughness' min=0.01 step=0.001 max=1");
-  TwAddVarRW(tweakBar, "clipless", TW_TYPE_BOOLCPP, &clipless, "label='clipless'");
 }
 
 // load shader programs

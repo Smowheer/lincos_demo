@@ -39,6 +39,8 @@ class BasicLTC : public Application {
   void render_ltc_deferred();
   void resize() override;
 
+  void draw_scene(const std::string& current_shader);
+
   // render objects
   simpleQuad  quad;
   simpleModel teaPot;

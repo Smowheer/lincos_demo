@@ -1,7 +1,10 @@
 #ifndef AREA_LIGHT_HPP
 #define AREA_LIGHT_HPP
 
+#include <glm/glm.hpp>
+
 class AreaLight{
+public:
   glm::vec3 light_position;
   float rotation_x;
   float rotation_y;

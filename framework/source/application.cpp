@@ -20,7 +20,7 @@ using namespace gl;
 
 Application::Application(std::string const& resource_path)
  :m_resource_path{resource_path}
- ,m_cam{1.0f, 1.0f, glm::vec3(3.0f, 16.0f, 22.f)}
+ ,m_cam{1.0f, 1.0f, glm::vec3(0.0f, 5.5f, -10.0f)}
  ,tweakBar{TwNewBar("Settings")}
  ,rendered_frames{0}
  ,m_shader_handles{}
