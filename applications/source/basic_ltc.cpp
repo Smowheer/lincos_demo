@@ -178,9 +178,11 @@ void BasicLTC::render_ltc_forward(unsigned int light_idx) {
 void BasicLTC::draw_basic_scene(const std::string& current_shader) {
     uniform(current_shader, "modelMatrix", glm::mat4(1.0));
     plane.draw();
+
     uniform(current_shader, "modelMatrix", glm::translate(glm::mat4(1.0), glm::vec3(3,0,0)));
     teaPot.draw();
-    uniform(current_shader, "modelMatrix", glm::translate(glm::mat4(1.0), glm::vec3(3,0,3)));
+
+    uniform(current_shader, "modelMatrix", glm::rotate(glm::translate(glm::mat4(1.0), glm::vec3(3,0,3)), glm::radians(65.0f), glm::vec3(0.0, 1.0, 0.0)));
     teaPot.draw();
 }
 
