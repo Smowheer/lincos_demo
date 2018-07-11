@@ -26,7 +26,6 @@ Application::Application(std::string const& resource_path)
  glm::vec3(0.0,1.0, 0.0)
  }
  ,tweakBar{TwNewBar("Settings")}
- ,rendered_frames{0}
  ,m_shader_handles{}
  ,m_shader_files{}
  ,m_pressed_right{false}
@@ -154,7 +153,6 @@ void Application::keyCallback(GLFWwindow* w, int key, int scancode, int action, 
       break;
   }
 
-  rendered_frames = 0;
 }
 
 void Application::buttonCallback(GLFWwindow* w, int button, int action, int mods) {
@@ -185,7 +183,6 @@ void Application::buttonCallback(GLFWwindow* w, int button, int action, int mods
       break;
   }
 
-  rendered_frames = 0;
 }
 
 void Application::cursorCallback(GLFWwindow* w, double x, double y) {
@@ -219,7 +216,6 @@ void Application::cursorCallback(GLFWwindow* w, double x, double y) {
 
   updateCamera();
 
-  rendered_frames = 0;
 }
 
 void Application::scrollCallback(GLFWwindow* w, double offset_x, double offset_y) {

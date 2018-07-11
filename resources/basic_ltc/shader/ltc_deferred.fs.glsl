@@ -5,47 +5,40 @@
 // bind roughness   {label:"Roughness", default:0.25, min:0.01, max:1, step:0.001}
 // bind clipless    {label:"Clipless Approximation", default:false}
 
-// IN
-in vec3 w_normal;
-in vec3 w_position;
+layout(location = 0) out vec4 FragColor;
 
-// OUT
-out vec4 FragColor;
+// gbuffer stuff
+in vec2 tc;
+uniform sampler2D normal;
+uniform sampler2D position;
+uniform sampler2D depth;
 
-// UNIFORMS
 uniform float roughness;
 
 uniform bool clipless;
-
-uniform float intensity;
-uniform vec3  dcolor;
-uniform vec3  scolor;
-
-uniform vec3 p1;
-uniform vec3 p2;
-uniform vec3 p3;
-uniform vec3 p4;
 
 uniform vec3 camera_position;
 
 uniform sampler2D ltc_1;
 uniform sampler2D ltc_2;
 
+struct AreaLight {
+  float intensity;
+  vec3 dcolor;
+  vec3 scolor;
+
+  vec3 p1;
+  vec3 p2;
+  vec3 p3;
+  vec3 p4;
+};
+const int MAX_LIGHTS = 10;
+uniform int num_lights;
+uniform AreaLight area_lights[MAX_LIGHTS];
+
 const float LUT_SIZE  = 64.0;
 const float LUT_SCALE = (LUT_SIZE - 1.0)/LUT_SIZE;
 const float LUT_BIAS  = 0.5/LUT_SIZE;
-
-const float pi = 3.14159265;
-
-vec3 mul(mat3 m, vec3 v)
-{
-    return m * v;
-}
-
-mat3 mul(mat3 m1, mat3 m2)
-{
-    return m1 * m2;
-}
 
 // Linearly Transformed Cosines
 ///////////////////////////////
@@ -190,14 +183,14 @@ vec3 LTC_Evaluate(
     T2 = cross(N, T1);
 
     // rotate area light in (T1, T2, N) basis
-    Minv = mul(Minv, transpose(mat3(T1, T2, N)));
+    Minv = Minv * transpose(mat3(T1, T2, N));
 
     // polygon (allocate 5 vertices for clipping)
     vec3 L[5];
-    L[0] = mul(Minv, points[0] - P);
-    L[1] = mul(Minv, points[1] - P);
-    L[2] = mul(Minv, points[2] - P);
-    L[3] = mul(Minv, points[3] - P);
+    L[0] = Minv * (points[0] - P);
+    L[1] = Minv * (points[1] - P);
+    L[2] = Minv * (points[2] - P);
+    L[3] = Minv * (points[3] - P);
 
     // integrate
     float sum = 0.0;
@@ -284,25 +277,12 @@ vec3 PowVec3(vec3 v, float p)
 const float gamma = 2.2;
 vec3 ToLinear(vec3 v) { return PowVec3(v, gamma); }
 
-
 void main()
 {
-    vec3 points[4];
-    points[0] = p1;
-    points[1] = p2;
-    points[2] = p3;
-    points[3] = p4;
+    vec3 pos = texture2D(position, tc).rgb;
 
-    vec3 lcol = vec3(intensity);
-    vec3 dcol = ToLinear(dcolor);
-    vec3 scol = ToLinear(scolor);
-
-    vec3 col = vec3(0);
-
-		vec3 pos = w_position;
-
-		vec3 N = normalize(w_normal);
-		vec3 V = normalize(camera_position - w_position);
+    vec3 N = texture2D(normal, tc).rgb;
+		vec3 V = normalize(camera_position - pos);
 
 		float ndotv = saturate(dot(N, V));
 		vec2 uv = vec2(roughness, sqrt(1.0 - ndotv));
@@ -317,13 +297,27 @@ void main()
 				vec3(t1.z, 0, t1.w)
 				);
 
-		vec3 spec = LTC_Evaluate(N, V, pos, Minv, points);
-		// BRDF shadowing and Fresnel
-		spec *= scol*t2.x + (1.0 - scol)*t2.y;
+    vec3 col = vec3(0);
+    for (int i = 0; i < num_lights; ++i) {
+      vec3 points[4];
+      points[0] = area_lights[i].p1;
+      points[1] = area_lights[i].p2;
+      points[2] = area_lights[i].p3;
+      points[3] = area_lights[i].p4;
 
-		vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points);
+      vec3 lcol = vec3(area_lights[i].intensity);
+      vec3 dcol = ToLinear(area_lights[i].dcolor);
+      vec3 scol = ToLinear(area_lights[i].scolor);
 
-		col = lcol*(spec + dcol*diff);
+      vec3 spec = LTC_Evaluate(N, V, pos, Minv, points);
+      // BRDF shadowing and Fresnel
+      spec *= scol*t2.x + (1.0 - scol)*t2.y;
 
-    FragColor = vec4(col, 1.0);
+      vec3 diff = LTC_Evaluate(N, V, pos, mat3(1), points);
+
+      col += lcol*(spec + dcol*diff);
+    }
+
+    FragColor = vec4(col, num_lights);
+    gl_FragDepth = texture2D(depth, tc).r;
 }

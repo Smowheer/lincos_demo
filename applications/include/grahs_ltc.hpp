@@ -11,12 +11,12 @@
 #include "models.hpp"
 #include "area_light.hpp"
 
-class BasicLTC : public Application {
+class GrahsLTC : public Application {
  public:
   // allocate and initialize objects
-  BasicLTC(std::string const& resource_path);
-  BasicLTC(BasicLTC const&) = delete;
-  BasicLTC& operator=(BasicLTC const&) = delete;
+  GrahsLTC(std::string const& resource_path);
+  GrahsLTC(GrahsLTC const&) = delete;
+  GrahsLTC& operator=(GrahsLTC const&) = delete;
 
   // draw all objects
   void render();
@@ -33,13 +33,8 @@ class BasicLTC : public Application {
   void render_light_forward(unsigned light_idx);
   void render_ltc_forward(unsigned light_idx);
 
-  // deferred version
-  void render_deferred();
-  void render_gbuffer();
-  void render_ltc_deferred();
+  void draw_basic_scene(const std::string& current_shader);
   void resize() override;
-
-  void draw_scene(const std::string& current_shader);
 
   // render objects
   simpleQuad  quad;
@@ -51,15 +46,6 @@ class BasicLTC : public Application {
   GLuint ltc_texture_1;
   GLuint ltc_texture_2;
 
-
-  bool bool_deferred;
-  // Deferred Shading stuff
-  Fbo gbuffer;
-  //Tex tex_diffuse; // don't need this for now
-  Tex tex_normal;
-  Tex tex_position;
-  Tex tex_depth;
-
   // ACES Framebuffer stuff
   GLuint rtt_framebuffer;
   GLuint depthbuffer;
@@ -69,10 +55,7 @@ class BasicLTC : public Application {
   std::vector<AreaLight> area_lights;
 
   float roughness;
-
-  // Configuration of shader algorithm
-  bool clipless;
-
+  bool flip_lights;
 };
 
 #endif
